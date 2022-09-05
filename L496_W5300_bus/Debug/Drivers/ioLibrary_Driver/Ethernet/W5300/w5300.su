@@ -1,0 +1,11 @@
+../Drivers/ioLibrary_Driver/Ethernet/W5300/w5300.c:57:10:WIZCHIP_WRITE	16	static
+../Drivers/ioLibrary_Driver/Ethernet/W5300/w5300.c:95:10:WIZCHIP_READ	24	static
+../Drivers/ioLibrary_Driver/Ethernet/W5300/w5300.c:136:6:setTMSR	24	static
+../Drivers/ioLibrary_Driver/Ethernet/W5300/w5300.c:145:9:getTMSR	16	static
+../Drivers/ioLibrary_Driver/Ethernet/W5300/w5300.c:152:6:setRMSR	24	static
+../Drivers/ioLibrary_Driver/Ethernet/W5300/w5300.c:161:9:getRMSR	16	static
+../Drivers/ioLibrary_Driver/Ethernet/W5300/w5300.c:168:10:getSn_TX_FSR	32	static
+../Drivers/ioLibrary_Driver/Ethernet/W5300/w5300.c:182:10:getSn_RX_RSR	32	static
+../Drivers/ioLibrary_Driver/Ethernet/W5300/w5300.c:197:6:wiz_send_data	32	static
+../Drivers/ioLibrary_Driver/Ethernet/W5300/w5300.c:206:6:wiz_recv_data	32	static
+../Drivers/ioLibrary_Driver/Ethernet/W5300/w5300.c:225:6:wiz_recv_ignore	24	static
