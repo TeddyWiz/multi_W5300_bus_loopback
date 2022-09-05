@@ -281,7 +281,7 @@ void reg_wizchip_spiburst_cbfunc(void (*spi_rb)(uint8_t* pBuf, uint16_t len), vo
    }
 }
 
-int8_t ctlwizchip(ctlwizchip_type cwtype, void* arg)
+int8_t ctlwizchip(uint32_t ChipAddr, ctlwizchip_type cwtype, void* arg)
 {
 #if	_WIZCHIP_ == W5100S || _WIZCHIP_ == W5200 || _WIZCHIP_ == W5500
    uint8_t tmp = 0;
@@ -290,7 +290,7 @@ int8_t ctlwizchip(ctlwizchip_type cwtype, void* arg)
    switch(cwtype)
    {
       case CW_RESET_WIZCHIP:
-         wizchip_sw_reset();
+         wizchip_sw_reset(ChipAddr);
          break;
       case CW_INIT_WIZCHIP:
          if(arg != 0) 
@@ -298,18 +298,18 @@ int8_t ctlwizchip(ctlwizchip_type cwtype, void* arg)
             ptmp[0] = (uint8_t*)arg;
             ptmp[1] = ptmp[0] + _WIZCHIP_SOCK_NUM_;
          }
-         return wizchip_init(ptmp[0], ptmp[1]);
+         return wizchip_init(ChipAddr, ptmp[0], ptmp[1]);
       case CW_CLR_INTERRUPT:
-         wizchip_clrinterrupt(*((intr_kind*)arg));
+         wizchip_clrinterrupt(ChipAddr, *((intr_kind*)arg));
          break;
       case CW_GET_INTERRUPT:
-        *((intr_kind*)arg) = wizchip_getinterrupt();
+        *((intr_kind*)arg) = wizchip_getinterrupt(ChipAddr);
          break;
       case CW_SET_INTRMASK:
-         wizchip_setinterruptmask(*((intr_kind*)arg));
+         wizchip_setinterruptmask(ChipAddr, *((intr_kind*)arg));
          break;         
       case CW_GET_INTRMASK:
-         *((intr_kind*)arg) = wizchip_getinterruptmask();
+         *((intr_kind*)arg) = wizchip_getinterruptmask(ChipAddr);
          break;
    //M20150601 : This can be supported by W5200, W5500
    //#if _WIZCHIP_ > W5100
@@ -364,27 +364,27 @@ int8_t ctlwizchip(ctlwizchip_type cwtype, void* arg)
 }
 
 
-int8_t ctlnetwork(ctlnetwork_type cntype, void* arg)
+int8_t ctlnetwork(uint32_t ChipAddr, ctlnetwork_type cntype, void* arg)
 {
    
    switch(cntype)
    {
       case CN_SET_NETINFO:
-         wizchip_setnetinfo((wiz_NetInfo*)arg);
+         wizchip_setnetinfo(ChipAddr, (wiz_NetInfo*)arg);
          break;
       case CN_GET_NETINFO:
-         wizchip_getnetinfo((wiz_NetInfo*)arg);
+         wizchip_getnetinfo(ChipAddr, (wiz_NetInfo*)arg);
          break;
       case CN_SET_NETMODE:
-         return wizchip_setnetmode(*(netmode_type*)arg);
+         return wizchip_setnetmode(ChipAddr, *(netmode_type*)arg);
       case CN_GET_NETMODE:
-         *(netmode_type*)arg = wizchip_getnetmode();
+         *(netmode_type*)arg = wizchip_getnetmode(ChipAddr);
          break;
       case CN_SET_TIMEOUT:
-         wizchip_settimeout((wiz_NetTimeout*)arg);
+         wizchip_settimeout(ChipAddr, (wiz_NetTimeout*)arg);
          break;
       case CN_GET_TIMEOUT:
-         wizchip_gettimeout((wiz_NetTimeout*)arg);
+         wizchip_gettimeout(ChipAddr, (wiz_NetTimeout*)arg);
          break;
       default:
          return -1;
@@ -392,7 +392,7 @@ int8_t ctlnetwork(ctlnetwork_type cntype, void* arg)
    return 0;
 }
 
-void wizchip_sw_reset(void)
+void wizchip_sw_reset(uint32_t ChipAddr)
 {
    uint8_t gw[4], sn[4], sip[4];
    uint8_t mac[6];
@@ -402,29 +402,29 @@ void wizchip_sw_reset(void)
    setMR(mr | MR_IND);
 #endif
 //
-   getSHAR(mac);
-   getGAR(gw);  getSUBR(sn);  getSIPR(sip);
-   setMR(MR_RST);
-   getMR(); // for delay
+   getSHAR(ChipAddr, mac);
+   getGAR(ChipAddr, gw);  getSUBR(ChipAddr, sn);  getSIPR(ChipAddr, sip);
+   setMR(ChipAddr, MR_RST);
+   getMR(ChipAddr); // for delay
 //A2015051 : For indirect bus mode 
 #if _WIZCHIP_IO_MODE_  == _WIZCHIP_IO_MODE_BUS_INDIR_
    setMR(mr | MR_IND);
 #endif
 //
-   setSHAR(mac);
-   setGAR(gw);
-   setSUBR(sn);
-   setSIPR(sip);
+   setSHAR(ChipAddr, mac);
+   setGAR(ChipAddr, gw);
+   setSUBR(ChipAddr, sn);
+   setSIPR(ChipAddr, sip);
 }
 
-int8_t wizchip_init(uint8_t* txsize, uint8_t* rxsize)
+int8_t wizchip_init(uint32_t ChipAddr, uint8_t* txsize, uint8_t* rxsize)
 {
    int8_t i;
 #if _WIZCHIP_ < W5200
    int8_t j;
 #endif
    int8_t tmp = 0;
-   wizchip_sw_reset();
+   wizchip_sw_reset(ChipAddr);
    if(txsize)
    {
       tmp = 0;
@@ -499,7 +499,7 @@ int8_t wizchip_init(uint8_t* txsize, uint8_t* rxsize)
    return 0;
 }
 
-void wizchip_clrinterrupt(intr_kind intr)
+void wizchip_clrinterrupt(uint32_t ChipAddr, intr_kind intr)
 {
    uint8_t ir  = (uint8_t)intr;
    uint8_t sir = (uint8_t)((uint16_t)intr >> 8);
@@ -519,7 +519,7 @@ void wizchip_clrinterrupt(intr_kind intr)
    setIR(ir);
 //A20150601 : For integrating with W5300
 #elif _WIZCHIP_ == W5300
-   setIR( ((((uint16_t)ir) << 8) | (((uint16_t)sir) & 0x00FF)) );
+   setIR(ChipAddr, ((((uint16_t)ir) << 8) | (((uint16_t)sir) & 0x00FF)) );
 #else
    setIR(ir);
 //M20200227 : For clear
@@ -531,7 +531,7 @@ void wizchip_clrinterrupt(intr_kind intr)
 #endif   
 }
 
-intr_kind wizchip_getinterrupt(void)
+intr_kind wizchip_getinterrupt(uint32_t ChipAddr)
 {
    uint8_t ir  = 0;
    uint8_t sir = 0;
@@ -541,7 +541,7 @@ intr_kind wizchip_getinterrupt(void)
    sir = ir & 0x0F;
 //A20150601 : For integrating with W5300
 #elif _WIZCHIP_  == W5300
-   ret = getIR();
+   ret = getIR(ChipAddr);
    ir = (uint8_t)(ret >> 8);
    sir = (uint8_t)ret;
 #else
@@ -562,7 +562,7 @@ intr_kind wizchip_getinterrupt(void)
   return (intr_kind)ret;
 }
 
-void wizchip_setinterruptmask(intr_kind intr)
+void wizchip_setinterruptmask(uint32_t ChipAddr, intr_kind intr)
 {
    uint8_t imr  = (uint8_t)intr;
    uint8_t simr = (uint8_t)((uint16_t)intr >> 8);
@@ -579,14 +579,14 @@ void wizchip_setinterruptmask(intr_kind intr)
    setIMR(imr);
 //A20150601 : For integrating with W5300
 #elif _WIZCHIP_ == W5300
-   setIMR( ((((uint16_t)imr) << 8) | (((uint16_t)simr) & 0x00FF)) );
+   setIMR( ChipAddr, ((((uint16_t)imr) << 8) | (((uint16_t)simr) & 0x00FF)) );
 #else
    setIMR(imr);
    setSIMR(simr);
 #endif   
 }
 
-intr_kind wizchip_getinterruptmask(void)
+intr_kind wizchip_getinterruptmask(uint32_t ChipAddr)
 {
    uint8_t imr  = 0;
    uint8_t simr = 0;
@@ -596,7 +596,7 @@ intr_kind wizchip_getinterruptmask(void)
    simr = imr & 0x0F;
 //A20150601 : For integrating with W5300
 #elif _WIZCHIP_ == W5300
-   ret = getIMR();
+   ret = getIMR(ChipAddr);
    imr = (uint8_t)(ret >> 8);
    simr = (uint8_t)ret;
 #else
@@ -851,12 +851,12 @@ int8_t wizphy_setphypmode(uint8_t pmode)
 #endif
 
 
-void wizchip_setnetinfo(wiz_NetInfo* pnetinfo)
+void wizchip_setnetinfo(uint32_t ChipAddr, wiz_NetInfo* pnetinfo)
 {
-   setSHAR(pnetinfo->mac);
-   setGAR(pnetinfo->gw);
-   setSUBR(pnetinfo->sn);
-   setSIPR(pnetinfo->ip);
+   setSHAR(ChipAddr, pnetinfo->mac);
+   setGAR(ChipAddr, pnetinfo->gw);
+   setSUBR(ChipAddr, pnetinfo->sn);
+   setSIPR(ChipAddr, pnetinfo->ip);
    _DNS_[0] = pnetinfo->dns[0];
    _DNS_[1] = pnetinfo->dns[1];
    _DNS_[2] = pnetinfo->dns[2];
@@ -864,12 +864,12 @@ void wizchip_setnetinfo(wiz_NetInfo* pnetinfo)
    _DHCP_   = pnetinfo->dhcp;
 }
 
-void wizchip_getnetinfo(wiz_NetInfo* pnetinfo)
+void wizchip_getnetinfo(uint32_t ChipAddr, wiz_NetInfo* pnetinfo)
 {
-   getSHAR(pnetinfo->mac);
-   getGAR(pnetinfo->gw);
-   getSUBR(pnetinfo->sn);
-   getSIPR(pnetinfo->ip);
+   getSHAR(ChipAddr, pnetinfo->mac);
+   getGAR(ChipAddr, pnetinfo->gw);
+   getSUBR(ChipAddr, pnetinfo->sn);
+   getSIPR(ChipAddr, pnetinfo->ip);
    pnetinfo->dns[0]= _DNS_[0];
    pnetinfo->dns[1]= _DNS_[1];
    pnetinfo->dns[2]= _DNS_[2];
@@ -877,7 +877,7 @@ void wizchip_getnetinfo(wiz_NetInfo* pnetinfo)
    pnetinfo->dhcp  = _DHCP_;
 }
 
-int8_t wizchip_setnetmode(netmode_type netmode)
+int8_t wizchip_setnetmode(uint32_t ChipAddr, netmode_type netmode)
 {
    uint8_t tmp = 0;
 #if _WIZCHIP_ != W5500
@@ -885,25 +885,25 @@ int8_t wizchip_setnetmode(netmode_type netmode)
 #else
    if(netmode & ~(NM_WAKEONLAN | NM_PPPOE | NM_PINGBLOCK | NM_FORCEARP)) return -1;
 #endif      
-   tmp = getMR();
+   tmp = getMR(ChipAddr);
    tmp |= (uint8_t)netmode;
-   setMR(tmp);
+   setMR(ChipAddr, tmp);
    return 0;
 }
 
-netmode_type wizchip_getnetmode(void)
+netmode_type wizchip_getnetmode(uint32_t ChipAddr)
 {
-   return (netmode_type) getMR();
+   return (netmode_type) getMR(ChipAddr);
 }
 
-void wizchip_settimeout(wiz_NetTimeout* nettime)
+void wizchip_settimeout(uint32_t ChipAddr, wiz_NetTimeout* nettime)
 {
-   setRCR(nettime->retry_cnt);
-   setRTR(nettime->time_100us);
+   setRCR(ChipAddr, nettime->retry_cnt);
+   setRTR(ChipAddr, nettime->time_100us);
 }
 
-void wizchip_gettimeout(wiz_NetTimeout* nettime)
+void wizchip_gettimeout(uint32_t ChipAddr, wiz_NetTimeout* nettime)
 {
-   nettime->retry_cnt = getRCR();
-   nettime->time_100us = getRTR();
+   nettime->retry_cnt = getRCR(ChipAddr);
+   nettime->time_100us = getRTR(ChipAddr);
 }

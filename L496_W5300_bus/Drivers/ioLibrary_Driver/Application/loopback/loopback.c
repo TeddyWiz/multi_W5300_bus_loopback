@@ -5,7 +5,7 @@
 
 #if LOOPBACK_MODE == LOOPBACK_MAIN_NOBLCOK
 
-int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
+int32_t loopback_tcps(uint32_t ChipAddr, uint8_t sn, uint8_t* buf, uint16_t port)
 {
    int32_t ret;
    uint16_t size = 0, sentsize=0;
@@ -15,23 +15,23 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
    uint16_t destport;
 #endif
 
-   switch(getSn_SR(sn))
+   switch(getSn_SR(ChipAddr, sn))
    {
       case SOCK_ESTABLISHED :
-         if(getSn_IR(sn) & Sn_IR_CON)
+         if(getSn_IR(ChipAddr, sn) & Sn_IR_CON)
          {
 #ifdef _LOOPBACK_DEBUG_
-			getSn_DIPR(sn, destip);
-			destport = getSn_DPORT(sn);
+			getSn_DIPR(ChipAddr, sn, destip);
+			destport = getSn_DPORT(ChipAddr, sn);
 
 			printf("%d:Connected - %d.%d.%d.%d : %d\r\n",sn, destip[0], destip[1], destip[2], destip[3], destport);
 #endif
-			setSn_IR(sn,Sn_IR_CON);
+			setSn_IR(ChipAddr, sn,Sn_IR_CON);
          }
-		 if((size = getSn_RX_RSR(sn)) > 0) // Don't need to check SOCKERR_BUSY because it doesn't not occur.
+		 if((size = getSn_RX_RSR(ChipAddr, sn)) > 0) // Don't need to check SOCKERR_BUSY because it doesn't not occur.
          {
 			if(size > DATA_BUF_SIZE) size = DATA_BUF_SIZE;
-			ret = recv(sn, buf, size);
+			ret = recv(ChipAddr, sn, buf, size);
 
 			if(ret <= 0) return ret;      // check SOCKERR_BUSY & SOCKERR_XXX. For showing the occurrence of SOCKERR_BUSY.
 			size = (uint16_t) ret;
@@ -39,10 +39,10 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 
 			while(size != sentsize)
 			{
-				ret = send(sn, buf+sentsize, size-sentsize);
+				ret = send(ChipAddr, sn, buf+sentsize, size-sentsize);
 				if(ret < 0)
 				{
-					close(sn);
+					close(ChipAddr, sn);
 					return ret;
 				}
 				sentsize += ret; // Don't care SOCKERR_BUSY, because it is zero.
@@ -53,7 +53,7 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 #ifdef _LOOPBACK_DEBUG_
          //printf("%d:CloseWait\r\n",sn);
 #endif
-         if((ret = disconnect(sn)) != SOCK_OK) return ret;
+         if((ret = disconnect(ChipAddr, sn)) != SOCK_OK) return ret;
 #ifdef _LOOPBACK_DEBUG_
          printf("%d:Socket Closed\r\n", sn);
 #endif
@@ -62,13 +62,13 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 #ifdef _LOOPBACK_DEBUG_
     	 printf("%d:Listen, TCP server loopback, port [%d]\r\n", sn, port);
 #endif
-         if( (ret = listen(sn)) != SOCK_OK) return ret;
+         if( (ret = listen(ChipAddr, sn)) != SOCK_OK) return ret;
          break;
       case SOCK_CLOSED:
 #ifdef _LOOPBACK_DEBUG_
          //printf("%d:TCP server loopback start\r\n",sn);
 #endif
-         if((ret = socket(sn, Sn_MR_TCP, port, 0x00)) != sn) return ret;
+         if((ret = socket(ChipAddr, sn, Sn_MR_TCP, port, 0x00)) != sn) return ret;
 #ifdef _LOOPBACK_DEBUG_
          //printf("%d:Socket opened\r\n",sn);
 #endif
@@ -80,7 +80,7 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 }
 
 
-int32_t loopback_tcpc(uint8_t sn, uint8_t* buf, uint8_t* destip, uint16_t destport)
+int32_t loopback_tcpc(uint32_t ChipAddr, uint8_t sn, uint8_t* buf, uint8_t* destip, uint16_t destport)
 {
    int32_t ret; // return value for SOCK_ERRORs
    uint16_t size = 0, sentsize=0;
@@ -96,24 +96,24 @@ int32_t loopback_tcpc(uint8_t sn, uint8_t* buf, uint8_t* destip, uint16_t destpo
 
    // Socket Status Transitions
    // Check the W5500 Socket n status register (Sn_SR, The 'Sn_SR' controlled by Sn_CR command or Packet send/recv status)
-   switch(getSn_SR(sn))
+   switch(getSn_SR(ChipAddr, sn))
    {
       case SOCK_ESTABLISHED :
-         if(getSn_IR(sn) & Sn_IR_CON)	// Socket n interrupt register mask; TCP CON interrupt = connection with peer is successful
+         if(getSn_IR(ChipAddr, sn) & Sn_IR_CON)	// Socket n interrupt register mask; TCP CON interrupt = connection with peer is successful
          {
 #ifdef _LOOPBACK_DEBUG_
 			printf("%d:Connected to - %d.%d.%d.%d : %d\r\n",sn, destip[0], destip[1], destip[2], destip[3], destport);
 #endif
-			setSn_IR(sn, Sn_IR_CON);  // this interrupt should be write the bit cleared to '1'
+			setSn_IR(ChipAddr, sn, Sn_IR_CON);  // this interrupt should be write the bit cleared to '1'
          }
 
          //////////////////////////////////////////////////////////////////////////////////////////////
          // Data Transaction Parts; Handle the [data receive and send] process
          //////////////////////////////////////////////////////////////////////////////////////////////
-		 if((size = getSn_RX_RSR(sn)) > 0) // Sn_RX_RSR: Socket n Received Size Register, Receiving data length
+		 if((size = getSn_RX_RSR(ChipAddr, sn)) > 0) // Sn_RX_RSR: Socket n Received Size Register, Receiving data length
          {
 			if(size > DATA_BUF_SIZE) size = DATA_BUF_SIZE; // DATA_BUF_SIZE means user defined buffer size (array)
-			ret = recv(sn, buf, size); // Data Receive process (H/W Rx socket buffer -> User's buffer)
+			ret = recv(ChipAddr, sn, buf, size); // Data Receive process (H/W Rx socket buffer -> User's buffer)
 
 			if(ret <= 0) return ret; // If the received data length <= 0, receive failed and process end
 			size = (uint16_t) ret;
@@ -122,10 +122,10 @@ int32_t loopback_tcpc(uint8_t sn, uint8_t* buf, uint8_t* destip, uint16_t destpo
 			// Data sentsize control
 			while(size != sentsize)
 			{
-				ret = send(sn, buf+sentsize, size-sentsize); // Data send process (User's buffer -> Destination through H/W Tx socket buffer)
+				ret = send(ChipAddr, sn, buf+sentsize, size-sentsize); // Data send process (User's buffer -> Destination through H/W Tx socket buffer)
 				if(ret < 0) // Send Error occurred (sent data length < 0)
 				{
-					close(sn); // socket close
+					close(ChipAddr, sn); // socket close
 					return ret;
 				}
 				sentsize += ret; // Don't care SOCKERR_BUSY, because it is zero.
@@ -138,7 +138,7 @@ int32_t loopback_tcpc(uint8_t sn, uint8_t* buf, uint8_t* destip, uint16_t destpo
 #ifdef _LOOPBACK_DEBUG_
          //printf("%d:CloseWait\r\n",sn);
 #endif
-         if((ret=disconnect(sn)) != SOCK_OK) return ret;
+         if((ret=disconnect(ChipAddr, sn)) != SOCK_OK) return ret;
 #ifdef _LOOPBACK_DEBUG_
          printf("%d:Socket Closed\r\n", sn);
 #endif
@@ -148,12 +148,12 @@ int32_t loopback_tcpc(uint8_t sn, uint8_t* buf, uint8_t* destip, uint16_t destpo
 #ifdef _LOOPBACK_DEBUG_
     	 printf("%d:Try to connect to the %d.%d.%d.%d : %d\r\n", sn, destip[0], destip[1], destip[2], destip[3], destport);
 #endif
-    	 if( (ret = connect(sn, destip, destport)) != SOCK_OK) return ret;	//	Try to TCP connect to the TCP server (destination)
+    	 if( (ret = connect(ChipAddr, sn, destip, destport)) != SOCK_OK) return ret;	//	Try to TCP connect to the TCP server (destination)
          break;
 
       case SOCK_CLOSED:
-    	  close(sn);
-    	  if((ret=socket(sn, Sn_MR_TCP, any_port++, 0x00)) != sn){
+    	  close(ChipAddr, sn);
+    	  if((ret=socket(ChipAddr, sn, Sn_MR_TCP, any_port++, 0x00)) != sn){
          if(any_port == 0xffff) any_port = 50000;
          return ret; // TCP socket open with 'any_port' port number
         } 
@@ -169,20 +169,20 @@ int32_t loopback_tcpc(uint8_t sn, uint8_t* buf, uint8_t* destip, uint16_t destpo
 }
 
 
-int32_t loopback_udps(uint8_t sn, uint8_t* buf, uint16_t port)
+int32_t loopback_udps(uint32_t ChipAddr, uint8_t sn, uint8_t* buf, uint16_t port)
 {
    int32_t  ret;
    uint16_t size, sentsize;
    uint8_t  destip[4];
    uint16_t destport;
 
-   switch(getSn_SR(sn))
+   switch(getSn_SR(ChipAddr, sn))
    {
       case SOCK_UDP :
-         if((size = getSn_RX_RSR(sn)) > 0)
+         if((size = getSn_RX_RSR(ChipAddr, sn)) > 0)
          {
             if(size > DATA_BUF_SIZE) size = DATA_BUF_SIZE;
-            ret = recvfrom(sn, buf, size, destip, (uint16_t*)&destport);
+            ret = recvfrom(ChipAddr, sn, buf, size, destip, (uint16_t*)&destport);
             if(ret <= 0)
             {
 #ifdef _LOOPBACK_DEBUG_
@@ -194,7 +194,7 @@ int32_t loopback_udps(uint8_t sn, uint8_t* buf, uint16_t port)
             sentsize = 0;
             while(sentsize != size)
             {
-               ret = sendto(sn, buf+sentsize, size-sentsize, destip, destport);
+               ret = sendto(ChipAddr, sn, buf+sentsize, size-sentsize, destip, destport);
                if(ret < 0)
                {
 #ifdef _LOOPBACK_DEBUG_
@@ -210,7 +210,7 @@ int32_t loopback_udps(uint8_t sn, uint8_t* buf, uint16_t port)
 #ifdef _LOOPBACK_DEBUG_
          //printf("%d:UDP loopback start\r\n",sn);
 #endif
-         if((ret = socket(sn, Sn_MR_UDP, port, 0x00)) != sn)
+         if((ret = socket(ChipAddr, sn, Sn_MR_UDP, port, 0x00)) != sn)
             return ret;
 #ifdef _LOOPBACK_DEBUG_
          printf("%d:Opened, UDP loopback, port [%d]\r\n", sn, port);

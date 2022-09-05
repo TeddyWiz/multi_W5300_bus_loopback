@@ -30,10 +30,8 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
-#define _USE_W5300_OPTIMIZE				1
 
-#define W5300_BANK_ADDR                 ((uint32_t)0x64000000)//((uint32_t)0x60000000)//((uint32_t)0x64000000)
-#define _W5300_DATA(p)                  *(__IO uint16_t *)(W5300_BANK_ADDR + (p<<1))//(*(volatile unsigned short*) (W5300_BANK_ADDR + (p<<1)))
+
 
 
 #define RESET_W5300_GPIO_Port			GPIOF
@@ -61,6 +59,7 @@
 UART_HandleTypeDef hlpuart1;
 
 SRAM_HandleTypeDef hsram1;
+SRAM_HandleTypeDef hsram2;
 
 /* USER CODE BEGIN PV */
 uint8_t wiznet_memsize[2][8] = {{8,8,8,8,8,8,8,8}, {8,8,8,8,8,8,8,8}};
@@ -78,7 +77,14 @@ wiz_NetInfo gWIZNETINFO = {
 		.dns = {0, 0, 0, 0},
 		.dhcp = NETINFO_STATIC
 };
-
+wiz_NetInfo gWIZNETINFO1 = {
+		.mac = {0x00, 0x08, 0xdc, 0, 0, 1},
+		.ip = {192, 168, 15, 112},
+		.sn = {255, 255, 255, 0},
+		.gw = {192, 168, 15, 1},
+		.dns = {0, 0, 0, 0},
+		.dhcp = NETINFO_STATIC
+};
 
 /* USER CODE END PV */
 
@@ -119,7 +125,7 @@ void Reset_W5300()
 	HAL_GPIO_WritePin(RESET_W5300_GPIO_Port, RESET_W5300_Pin, GPIO_PIN_SET);
 	HAL_Delay(100);
 }
-
+#if 0
 void W5300_write(uint32_t addr, iodata_t wd)
 {
 	_W5300_DATA(addr) = wd;
@@ -128,6 +134,16 @@ void W5300_write(uint32_t addr, iodata_t wd)
 iodata_t W5300_read(uint32_t addr)
 {
 	return _W5300_DATA(addr);
+}
+#endif
+void W5300_write(uint32_t ChipAddr, uint32_t addr, iodata_t wd)
+{
+	_W5300_DATA(ChipAddr, addr) = wd;
+}
+
+iodata_t W5300_read(uint32_t ChipAddr, uint32_t addr)
+{
+	return _W5300_DATA(ChipAddr, addr);
 }
 void W5300CsEnable(void)
 {
@@ -139,12 +155,18 @@ void W5300CsDisable(void)
 }
 void print_network_information(void)
 {
-    wizchip_getnetinfo(&gWIZNETINFO);
+    wizchip_getnetinfo(W5300_BANK_ADDR1, &gWIZNETINFO);
     printf("Mac address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",gWIZNETINFO.mac[0],gWIZNETINFO.mac[1],gWIZNETINFO.mac[2],gWIZNETINFO.mac[3],gWIZNETINFO.mac[4],gWIZNETINFO.mac[5]);
     printf("IP address : %d.%d.%d.%d\n\r",gWIZNETINFO.ip[0],gWIZNETINFO.ip[1],gWIZNETINFO.ip[2],gWIZNETINFO.ip[3]);
     printf("SM Mask    : %d.%d.%d.%d\n\r",gWIZNETINFO.sn[0],gWIZNETINFO.sn[1],gWIZNETINFO.sn[2],gWIZNETINFO.sn[3]);
     printf("Gate way   : %d.%d.%d.%d\n\r",gWIZNETINFO.gw[0],gWIZNETINFO.gw[1],gWIZNETINFO.gw[2],gWIZNETINFO.gw[3]);
     printf("DNS Server : %d.%d.%d.%d\n\r",gWIZNETINFO.dns[0],gWIZNETINFO.dns[1],gWIZNETINFO.dns[2],gWIZNETINFO.dns[3]);
+    wizchip_getnetinfo(W5300_BANK_ADDR2, &gWIZNETINFO1);
+	printf("Mac address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",gWIZNETINFO1.mac[0],gWIZNETINFO1.mac[1],gWIZNETINFO1.mac[2],gWIZNETINFO1.mac[3],gWIZNETINFO1.mac[4],gWIZNETINFO1.mac[5]);
+	printf("IP address : %d.%d.%d.%d\n\r",gWIZNETINFO1.ip[0],gWIZNETINFO1.ip[1],gWIZNETINFO1.ip[2],gWIZNETINFO1.ip[3]);
+	printf("SM Mask    : %d.%d.%d.%d\n\r",gWIZNETINFO1.sn[0],gWIZNETINFO1.sn[1],gWIZNETINFO1.sn[2],gWIZNETINFO1.sn[3]);
+	printf("Gate way   : %d.%d.%d.%d\n\r",gWIZNETINFO1.gw[0],gWIZNETINFO1.gw[1],gWIZNETINFO1.gw[2],gWIZNETINFO1.gw[3]);
+	printf("DNS Server : %d.%d.%d.%d\n\r",gWIZNETINFO1.dns[0],gWIZNETINFO1.dns[1],gWIZNETINFO1.dns[2],gWIZNETINFO1.dns[3]);
 }
 
 void _InitW5300(void)
@@ -152,16 +174,22 @@ void _InitW5300(void)
 	unsigned int tmpaddr[4];
 
 	Reset_W5300();
-	reg_wizchip_bus_cbfunc(W5300_read, W5300_write);
-	reg_wizchip_cs_cbfunc(W5300CsEnable, W5300CsDisable);
-	printf("getMR() = %04X\r\n", getMR());
+	//reg_wizchip_bus_cbfunc(W5300_read, W5300_write);
+	//reg_wizchip_cs_cbfunc(W5300CsEnable, W5300CsDisable);
+	printf("getMR(W5300_BANK_ADDR1) = %04X\r\n", getMR(W5300_BANK_ADDR1));
+	printf("getMR(W5300_BANK_ADDR2) = %04X\r\n", getMR(W5300_BANK_ADDR2));
 
-	if (ctlwizchip(CW_INIT_WIZCHIP, (void*)wiznet_memsize) == -1)
+	if (ctlwizchip(W5300_BANK_ADDR1, CW_INIT_WIZCHIP, (void*)wiznet_memsize) == -1)
+	{
+		printf("W5300 memory initialization failed\r\n");
+	}
+	if (ctlwizchip(W5300_BANK_ADDR2, CW_INIT_WIZCHIP, (void*)wiznet_memsize) == -1)
 	{
 		printf("W5300 memory initialization failed\r\n");
 	}
 
-	ctlnetwork(CN_SET_NETINFO, (void *)&gWIZNETINFO);
+	ctlnetwork(W5300_BANK_ADDR1, CN_SET_NETINFO, (void *)&gWIZNETINFO);
+	ctlnetwork(W5300_BANK_ADDR2, CN_SET_NETINFO, (void *)&gWIZNETINFO1);
 	print_network_information();
 }
 /* USER CODE END PFP */
@@ -212,7 +240,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	 loopback_tcps(0, ethBuf0, 3000);
+	 loopback_tcps(W5300_BANK_ADDR1, 0, ethBuf0, 3000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -323,7 +351,7 @@ static void MX_FMC_Init(void)
   hsram1.Instance = FMC_NORSRAM_DEVICE;
   hsram1.Extended = FMC_NORSRAM_EXTENDED_DEVICE;
   /* hsram1.Init */
-  hsram1.Init.NSBank = FMC_NORSRAM_BANK2;
+  hsram1.Init.NSBank = FMC_NORSRAM_BANK1;
   hsram1.Init.DataAddressMux = FMC_DATA_ADDRESS_MUX_DISABLE;
   hsram1.Init.MemoryType = FMC_MEMORY_TYPE_SRAM;
   hsram1.Init.MemoryDataWidth = FMC_NORSRAM_MEM_BUS_WIDTH_16;
@@ -349,6 +377,41 @@ static void MX_FMC_Init(void)
   /* ExtTiming */
 
   if (HAL_SRAM_Init(&hsram1, &Timing, NULL) != HAL_OK)
+  {
+    Error_Handler( );
+  }
+
+  /** Perform the SRAM2 memory initialization sequence
+  */
+  hsram2.Instance = FMC_NORSRAM_DEVICE;
+  hsram2.Extended = FMC_NORSRAM_EXTENDED_DEVICE;
+  /* hsram2.Init */
+  hsram2.Init.NSBank = FMC_NORSRAM_BANK2;
+  hsram2.Init.DataAddressMux = FMC_DATA_ADDRESS_MUX_DISABLE;
+  hsram2.Init.MemoryType = FMC_MEMORY_TYPE_SRAM;
+  hsram2.Init.MemoryDataWidth = FMC_NORSRAM_MEM_BUS_WIDTH_16;
+  hsram2.Init.BurstAccessMode = FMC_BURST_ACCESS_MODE_DISABLE;
+  hsram2.Init.WaitSignalPolarity = FMC_WAIT_SIGNAL_POLARITY_LOW;
+  hsram2.Init.WaitSignalActive = FMC_WAIT_TIMING_BEFORE_WS;
+  hsram2.Init.WriteOperation = FMC_WRITE_OPERATION_DISABLE;
+  hsram2.Init.WaitSignal = FMC_WAIT_SIGNAL_DISABLE;
+  hsram2.Init.ExtendedMode = FMC_EXTENDED_MODE_DISABLE;
+  hsram2.Init.AsynchronousWait = FMC_ASYNCHRONOUS_WAIT_DISABLE;
+  hsram2.Init.WriteBurst = FMC_WRITE_BURST_DISABLE;
+  hsram2.Init.ContinuousClock = FMC_CONTINUOUS_CLOCK_SYNC_ONLY;
+  hsram2.Init.WriteFifo = FMC_WRITE_FIFO_ENABLE;
+  hsram2.Init.PageSize = FMC_PAGE_SIZE_NONE;
+  /* Timing */
+  Timing.AddressSetupTime = 15;
+  Timing.AddressHoldTime = 15;
+  Timing.DataSetupTime = 255;
+  Timing.BusTurnAroundDuration = 15;
+  Timing.CLKDivision = 16;
+  Timing.DataLatency = 17;
+  Timing.AccessMode = FMC_ACCESS_MODE_A;
+  /* ExtTiming */
+
+  if (HAL_SRAM_Init(&hsram2, &Timing, NULL) != HAL_OK)
   {
     Error_Handler( );
   }
@@ -384,9 +447,6 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LD3_Pin|LD2_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(USB_PowerSwitchOn_GPIO_Port, USB_PowerSwitchOn_Pin, GPIO_PIN_RESET);
-
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
@@ -406,27 +466,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : USB_OverCurrent_Pin */
-  GPIO_InitStruct.Pin = USB_OverCurrent_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(USB_OverCurrent_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : USB_PowerSwitchOn_Pin */
-  GPIO_InitStruct.Pin = USB_PowerSwitchOn_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(USB_PowerSwitchOn_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : USB_SOF_Pin USB_ID_Pin USB_DM_Pin USB_DP_Pin */
-  GPIO_InitStruct.Pin = USB_SOF_Pin|USB_ID_Pin|USB_DM_Pin|USB_DP_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF10_OTG_FS;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 }
 

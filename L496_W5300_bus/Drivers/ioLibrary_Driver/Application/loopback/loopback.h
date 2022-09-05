@@ -23,13 +23,13 @@ extern "C" {
 
 
 /* TCP server Loopback test example */
-int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port);
+int32_t loopback_tcps(uint32_t ChipAddr, uint8_t sn, uint8_t* buf, uint16_t port);
 
 /* TCP client Loopback test example */
-int32_t loopback_tcpc(uint8_t sn, uint8_t* buf, uint8_t* destip, uint16_t destport);
+int32_t loopback_tcpc(uint32_t ChipAddr, uint8_t sn, uint8_t* buf, uint8_t* destip, uint16_t destport);
 
 /* UDP Loopback test example */
-int32_t loopback_udps(uint8_t sn, uint8_t* buf, uint16_t port);
+int32_t loopback_udps(uint32_t ChipAddr, uint8_t sn, uint8_t* buf, uint16_t port);
 
 #ifdef __cplusplus
 }

@@ -85,14 +85,14 @@ uint8_t  sock_pack_info[_WIZCHIP_SOCK_NUM_] = {0,};
       if(sn > _WIZCHIP_SOCK_NUM_) return SOCKERR_SOCKNUM;   \
    }while(0);             \
 
-#define CHECK_SOCKMODE(mode)  \
+#define CHECK_SOCKMODE(ChipAddr, mode)  \
    do{                     \
-      if((getSn_MR(sn) & 0x0F) != mode) return SOCKERR_SOCKMODE;  \
+      if((getSn_MR(ChipAddr, sn) & 0x0F) != mode) return SOCKERR_SOCKMODE;  \
    }while(0);              \
 
-#define CHECK_SOCKINIT()   \
+#define CHECK_SOCKINIT(ChipAddr)   \
    do{                     \
-      if((getSn_SR(sn) != SOCK_INIT)) return SOCKERR_SOCKINIT; \
+      if((getSn_SR(ChipAddr, sn) != SOCK_INIT)) return SOCKERR_SOCKINIT; \
    }while(0);              \
 
 #define CHECK_SOCKDATA()   \
@@ -102,7 +102,7 @@ uint8_t  sock_pack_info[_WIZCHIP_SOCK_NUM_] = {0,};
 
 
 
-int8_t socket(uint8_t sn, uint8_t protocol, uint16_t port, uint8_t flag)
+int8_t socket(uint32_t ChipAddr, uint8_t sn, uint8_t protocol, uint16_t port, uint8_t flag)
 {
 	CHECK_SOCKNUM();
 	switch(protocol)
@@ -115,7 +115,7 @@ int8_t socket(uint8_t sn, uint8_t protocol, uint16_t port, uint8_t flag)
             getSIPR(taddr);
             */
             uint32_t taddr;
-            getSIPR((uint8_t*)&taddr);
+            getSIPR(ChipAddr, (uint8_t*)&taddr);
             if(taddr == 0) return SOCKERR_SOCKINIT;
 	    break;
          }
@@ -166,10 +166,10 @@ int8_t socket(uint8_t sn, uint8_t protocol, uint16_t port, uint8_t flag)
    	      break;
    	}
    }
-	close(sn);
+	close(ChipAddr,sn);
 	//M20150601
 	#if _WIZCHIP_ == 5300
-	   setSn_MR(sn, ((uint16_t)(protocol | (flag & 0xF0))) | (((uint16_t)(flag & 0x02)) << 7) );
+	   setSn_MR(ChipAddr, sn, ((uint16_t)(protocol | (flag & 0xF0))) | (((uint16_t)(flag & 0x02)) << 7) );
     #else
 	   setSn_MR(sn, (protocol | (flag & 0xF0)));
     #endif
@@ -178,9 +178,9 @@ int8_t socket(uint8_t sn, uint8_t protocol, uint16_t port, uint8_t flag)
 	   port = sock_any_port++;
 	   if(sock_any_port == 0xFFF0) sock_any_port = SOCK_ANY_PORT_NUM;
 	}
-   setSn_PORT(sn,port);	
-   setSn_CR(sn,Sn_CR_OPEN);
-   while(getSn_CR(sn));
+   setSn_PORT(ChipAddr, sn,port);	
+   setSn_CR(ChipAddr, sn,Sn_CR_OPEN);
+   while(getSn_CR(ChipAddr, sn));
    //A20150401 : For release the previous sock_io_mode
    sock_io_mode &= ~(1 <<sn);
    //
@@ -191,18 +191,18 @@ int8_t socket(uint8_t sn, uint8_t protocol, uint16_t port, uint8_t flag)
    //sock_pack_info[sn] = 0;
    sock_pack_info[sn] = PACK_COMPLETED;
    //
-   while(getSn_SR(sn) == SOCK_CLOSED);
+   while(getSn_SR(ChipAddr, sn) == SOCK_CLOSED);
    return (int8_t)sn;
 }	   
 
-int8_t close(uint8_t sn)
+int8_t close(uint32_t ChipAddr, uint8_t sn)
 {
 	CHECK_SOCKNUM();
 //A20160426 : Applied the erratum 1 of W5300
 #if   (_WIZCHIP_ == 5300) 
    //M20160503 : Wrong socket parameter. s -> sn 
    //if( ((getSn_MR(s)& 0x0F) == Sn_MR_TCP) && (getSn_TX_FSR(s) != getSn_TxMAX(s)) ) 
-   if( ((getSn_MR(sn)& 0x0F) == Sn_MR_TCP) && (getSn_TX_FSR(sn) != getSn_TxMAX(sn)) ) 
+   if( ((getSn_MR(ChipAddr, sn)& 0x0F) == Sn_MR_TCP) && (getSn_TX_FSR(ChipAddr, sn) != getSn_TxMAX(ChipAddr, sn)) )
    { 
       uint8_t destip[4] = {0, 0, 0, 1};
       // TODO
@@ -215,50 +215,50 @@ int8_t close(uint8_t sn)
       //M20160503 : The socket() of close() calls close() itself again. It occures a infinite loop - close()->socket()->close()->socket()-> ~
       //socket(s,Sn_MR_UDP,0x3000,0);
       //sendto(s,destip,1,destip,0x3000); // send the dummy data to an unknown destination(0.0.0.1).
-      setSn_MR(sn,Sn_MR_UDP);
-      setSn_PORTR(sn, 0x3000);
-      setSn_CR(sn,Sn_CR_OPEN);
-      while(getSn_CR(sn) != 0);
-      while(getSn_SR(sn) != SOCK_UDP);
-      sendto(sn,destip,1,destip,0x3000); // send the dummy data to an unknown destination(0.0.0.1).
+      setSn_MR(ChipAddr, sn, Sn_MR_UDP);
+      setSn_PORTR(ChipAddr, sn, 0x3000);
+      setSn_CR(ChipAddr,sn, Sn_CR_OPEN);
+      while(getSn_CR(ChipAddr, sn) != 0);
+      while(getSn_SR(ChipAddr, sn) != SOCK_UDP);
+      sendto(ChipAddr, sn,destip,1,destip,0x3000); // send the dummy data to an unknown destination(0.0.0.1).
    };   
 #endif 
-	setSn_CR(sn,Sn_CR_CLOSE);
+	setSn_CR(ChipAddr, sn,Sn_CR_CLOSE);
    /* wait to process the command... */
-	while( getSn_CR(sn) );
+	while( getSn_CR(ChipAddr, sn) );
 	/* clear all interrupt of the socket. */
-	setSn_IR(sn, 0xFF);
+	setSn_IR(ChipAddr, sn, 0xFF);
 	//A20150401 : Release the sock_io_mode of socket n.
 	sock_io_mode &= ~(1<<sn);
 	//
 	sock_is_sending &= ~(1<<sn);
 	sock_remained_size[sn] = 0;
 	sock_pack_info[sn] = 0;
-	while(getSn_SR(sn) != SOCK_CLOSED);
+	while(getSn_SR(ChipAddr, sn) != SOCK_CLOSED);
 	return SOCK_OK;
 }
 
-int8_t listen(uint8_t sn)
+int8_t listen(uint32_t ChipAddr, uint8_t sn)
 {
 	CHECK_SOCKNUM();
-   CHECK_SOCKMODE(Sn_MR_TCP);
-	CHECK_SOCKINIT();
-	setSn_CR(sn,Sn_CR_LISTEN);
-	while(getSn_CR(sn));
-   while(getSn_SR(sn) != SOCK_LISTEN)
+   CHECK_SOCKMODE(ChipAddr, Sn_MR_TCP);
+	CHECK_SOCKINIT(ChipAddr);
+	setSn_CR(ChipAddr, sn,Sn_CR_LISTEN);
+	while(getSn_CR(ChipAddr, sn));
+   while(getSn_SR(ChipAddr, sn) != SOCK_LISTEN)
    {
-         close(sn);
+         close(ChipAddr, sn);
          return SOCKERR_SOCKCLOSED;
    }
    return SOCK_OK;
 }
 
 
-int8_t connect(uint8_t sn, uint8_t * addr, uint16_t port)
+int8_t connect(uint32_t ChipAddr, uint8_t sn, uint8_t * addr, uint16_t port)
 {
    CHECK_SOCKNUM();
-   CHECK_SOCKMODE(Sn_MR_TCP);
-   CHECK_SOCKINIT();
+   CHECK_SOCKMODE(ChipAddr, Sn_MR_TCP);
+   CHECK_SOCKINIT(ChipAddr);
    //M20140501 : For avoiding fatal error on memory align mismatched
    //if( *((uint32_t*)addr) == 0xFFFFFFFF || *((uint32_t*)addr) == 0) return SOCKERR_IPINVALID;
    {
@@ -272,20 +272,20 @@ int8_t connect(uint8_t sn, uint8_t * addr, uint16_t port)
    //
 	
 	if(port == 0) return SOCKERR_PORTZERO;
-	setSn_DIPR(sn,addr);
-	setSn_DPORT(sn,port);
-	setSn_CR(sn,Sn_CR_CONNECT);
-   while(getSn_CR(sn));
+	setSn_DIPR(ChipAddr, sn,addr);
+	setSn_DPORT(ChipAddr, sn,port);
+	setSn_CR(ChipAddr, sn,Sn_CR_CONNECT);
+   while(getSn_CR(ChipAddr, sn));
    if(sock_io_mode & (1<<sn)) return SOCK_BUSY;
-   while(getSn_SR(sn) != SOCK_ESTABLISHED)
+   while(getSn_SR(ChipAddr, sn) != SOCK_ESTABLISHED)
    {
-		if (getSn_IR(sn) & Sn_IR_TIMEOUT)
+		if (getSn_IR(ChipAddr, sn) & Sn_IR_TIMEOUT)
 		{
-			setSn_IR(sn, Sn_IR_TIMEOUT);
+			setSn_IR(ChipAddr, sn, Sn_IR_TIMEOUT);
             return SOCKERR_TIMEOUT;
 		}
 
-		if (getSn_SR(sn) == SOCK_CLOSED)
+		if (getSn_SR(ChipAddr, sn) == SOCK_CLOSED)
 		{
 			return SOCKERR_SOCKCLOSED;
 		}
@@ -294,42 +294,42 @@ int8_t connect(uint8_t sn, uint8_t * addr, uint16_t port)
    return SOCK_OK;
 }
 
-int8_t disconnect(uint8_t sn)
+int8_t disconnect(uint32_t ChipAddr, uint8_t sn)
 {
    CHECK_SOCKNUM();
-   CHECK_SOCKMODE(Sn_MR_TCP);
-	setSn_CR(sn,Sn_CR_DISCON);
+   CHECK_SOCKMODE(ChipAddr, Sn_MR_TCP);
+	setSn_CR(ChipAddr, sn,Sn_CR_DISCON);
 	/* wait to process the command... */
-	while(getSn_CR(sn));
+	while(getSn_CR(ChipAddr, sn));
 	sock_is_sending &= ~(1<<sn);
    if(sock_io_mode & (1<<sn)) return SOCK_BUSY;
-	while(getSn_SR(sn) != SOCK_CLOSED)
+	while(getSn_SR(ChipAddr, sn) != SOCK_CLOSED)
 	{
-	   if(getSn_IR(sn) & Sn_IR_TIMEOUT)
+	   if(getSn_IR(ChipAddr, sn) & Sn_IR_TIMEOUT)
 	   {
-	      close(sn);
+	      close(ChipAddr, sn);
 	      return SOCKERR_TIMEOUT;
 	   }
 	}
 	return SOCK_OK;
 }
 
-int32_t send(uint8_t sn, uint8_t * buf, uint16_t len)
+int32_t send(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
 {
    uint8_t tmp=0;
    uint16_t freesize=0;
    
    CHECK_SOCKNUM();
-   CHECK_SOCKMODE(Sn_MR_TCP);
+   CHECK_SOCKMODE(ChipAddr, Sn_MR_TCP);
    CHECK_SOCKDATA();
-   tmp = getSn_SR(sn);
+   tmp = getSn_SR(ChipAddr, sn);
    if(tmp != SOCK_ESTABLISHED && tmp != SOCK_CLOSE_WAIT) return SOCKERR_SOCKSTATUS;
    if( sock_is_sending & (1<<sn) )
    {
-      tmp = getSn_IR(sn);
+      tmp = getSn_IR(ChipAddr, sn);
       if(tmp & Sn_IR_SENDOK)
       {
-         setSn_IR(sn, Sn_IR_SENDOK);
+         setSn_IR(ChipAddr, sn, Sn_IR_SENDOK);
          //M20150401 : Typing Error
          //#if _WZICHIP_ == 5200
          #if _WIZCHIP_ == 5200
@@ -344,37 +344,37 @@ int32_t send(uint8_t sn, uint8_t * buf, uint16_t len)
       }
       else if(tmp & Sn_IR_TIMEOUT)
       {
-         close(sn);
+         close(ChipAddr, sn);
          return SOCKERR_TIMEOUT;
       }
       else return SOCK_BUSY;
    }
-   freesize = getSn_TxMAX(sn);
+   freesize = getSn_TxMAX(ChipAddr, sn);
    if (len > freesize) len = freesize; // check size not to exceed MAX size.
    while(1)
    {
-      freesize = getSn_TX_FSR(sn);
-      tmp = getSn_SR(sn);
+      freesize = getSn_TX_FSR(ChipAddr, sn);
+      tmp = getSn_SR(ChipAddr, sn);
       if ((tmp != SOCK_ESTABLISHED) && (tmp != SOCK_CLOSE_WAIT))
       {
-         close(sn);
+         close(ChipAddr, sn);
          return SOCKERR_SOCKSTATUS;
       }
       if( (sock_io_mode & (1<<sn)) && (len > freesize) ) return SOCK_BUSY;
       if(len <= freesize) break;
    }
-   wiz_send_data(sn, buf, len);
+   wiz_send_data(ChipAddr, sn, buf, len);
    #if _WIZCHIP_ == 5200
       sock_next_rd[sn] = getSn_TX_RD(sn) + len;
    #endif
 
    #if _WIZCHIP_ == 5300
-      setSn_TX_WRSR(sn,len);
+      setSn_TX_WRSR(ChipAddr, sn,len);
    #endif
    
-   setSn_CR(sn,Sn_CR_SEND);
+   setSn_CR(ChipAddr, sn,Sn_CR_SEND);
    /* wait to process the command... */
-   while(getSn_CR(sn));
+   while(getSn_CR(ChipAddr, sn));
    sock_is_sending |= (1 << sn);
    //M20150409 : Explicit Type Casting
    //return len;
@@ -382,7 +382,7 @@ int32_t send(uint8_t sn, uint8_t * buf, uint16_t len)
 }
 
 
-int32_t recv(uint8_t sn, uint8_t * buf, uint16_t len)
+int32_t recv(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
 {
    uint8_t  tmp = 0;
    uint16_t recvsize = 0;
@@ -393,10 +393,10 @@ int32_t recv(uint8_t sn, uint8_t * buf, uint16_t len)
 #endif
 //
    CHECK_SOCKNUM();
-   CHECK_SOCKMODE(Sn_MR_TCP);
+   CHECK_SOCKMODE(ChipAddr, Sn_MR_TCP);
    CHECK_SOCKDATA();
    
-   recvsize = getSn_RxMAX(sn);
+   recvsize = getSn_RxMAX(ChipAddr, sn);
    if(recvsize < len) len = recvsize;
       
 //A20150601 : For Integrating with W5300
@@ -408,22 +408,22 @@ int32_t recv(uint8_t sn, uint8_t * buf, uint16_t len)
 //
       while(1)
       {
-         recvsize = getSn_RX_RSR(sn);
-         tmp = getSn_SR(sn);
+         recvsize = getSn_RX_RSR(ChipAddr, sn);
+         tmp = getSn_SR(ChipAddr, sn);
          if (tmp != SOCK_ESTABLISHED)
          {
             if(tmp == SOCK_CLOSE_WAIT)
             {
                if(recvsize != 0) break;
-               else if(getSn_TX_FSR(sn) == getSn_TxMAX(sn))
+               else if(getSn_TX_FSR(ChipAddr, sn) == getSn_TxMAX(ChipAddr, sn))
                {
-                  close(sn);
+                  close(ChipAddr, sn);
                   return SOCKERR_SOCKSTATUS;
                }
             }
             else
             {
-               close(sn);
+               close(ChipAddr, sn);
                return SOCKERR_SOCKSTATUS;
             }
          }
@@ -436,12 +436,12 @@ int32_t recv(uint8_t sn, uint8_t * buf, uint16_t len)
 
 //A20150601 : For integrating with W5300
 #if _WIZCHIP_ == 5300
-   if((sock_remained_size[sn] == 0) || (getSn_MR(sn) & Sn_MR_ALIGN))
+   if((sock_remained_size[sn] == 0) || (getSn_MR(ChipAddr, sn) & Sn_MR_ALIGN))
    {
-      mr = getMR();
-      if((getSn_MR(sn) & Sn_MR_ALIGN)==0)
+      mr = getMR(ChipAddr);
+      if((getSn_MR(ChipAddr, sn) & Sn_MR_ALIGN)==0)
       {
-         wiz_recv_data(sn,head,2);
+         wiz_recv_data(ChipAddr, sn,head,2);
          if(mr & MR_FS)
             recvsize = (((uint16_t)head[1]) << 8) | ((uint16_t)head[0]);
          else
@@ -462,9 +462,9 @@ int32_t recv(uint8_t sn, uint8_t * buf, uint16_t len)
    }
    if(recvsize != 0)
    {
-      wiz_recv_data(sn, buf, recvsize);
-      setSn_CR(sn,Sn_CR_RECV);
-      while(getSn_CR(sn));
+      wiz_recv_data(ChipAddr, sn, buf, recvsize);
+      setSn_CR(ChipAddr, sn,Sn_CR_RECV);
+      while(getSn_CR(ChipAddr, sn));
    }
    sock_remained_size[sn] -= recvsize;
    if(sock_remained_size[sn] != 0)
@@ -473,7 +473,7 @@ int32_t recv(uint8_t sn, uint8_t * buf, uint16_t len)
       if(recvsize & 0x1) sock_pack_info[sn] |= PACK_FIFOBYTE;
    }
    else sock_pack_info[sn] = PACK_COMPLETED;
-   if(getSn_MR(sn) & Sn_MR_ALIGN) sock_remained_size[sn] = 0;
+   if(getSn_MR(ChipAddr, sn) & Sn_MR_ALIGN) sock_remained_size[sn] = 0;
    //len = recvsize;
 #else   
    if(recvsize < len) len = recvsize;   
@@ -487,14 +487,14 @@ int32_t recv(uint8_t sn, uint8_t * buf, uint16_t len)
    return (int32_t)len;
 }
 
-int32_t sendto(uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16_t port)
+int32_t sendto(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16_t port)
 {
    uint8_t tmp = 0;
    uint16_t freesize = 0;
    uint32_t taddr;
 
    CHECK_SOCKNUM();
-   switch(getSn_MR(sn) & 0x0F)
+   switch(getSn_MR(ChipAddr, sn) & 0x0F)
    {
       case Sn_MR_UDP:
       case Sn_MR_MACRAW:
@@ -518,71 +518,71 @@ int32_t sendto(uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16_t
    //}
    //
    //if(*((uint32_t*)addr) == 0) return SOCKERR_IPINVALID;
-   if((taddr == 0) && ((getSn_MR(sn)&Sn_MR_MACRAW) != Sn_MR_MACRAW)) return SOCKERR_IPINVALID;
-   if((port  == 0) && ((getSn_MR(sn)&Sn_MR_MACRAW) != Sn_MR_MACRAW)) return SOCKERR_PORTZERO;
-   tmp = getSn_SR(sn);
+   if((taddr == 0) && ((getSn_MR(ChipAddr, sn)&Sn_MR_MACRAW) != Sn_MR_MACRAW)) return SOCKERR_IPINVALID;
+   if((port  == 0) && ((getSn_MR(ChipAddr, sn)&Sn_MR_MACRAW) != Sn_MR_MACRAW)) return SOCKERR_PORTZERO;
+   tmp = getSn_SR(ChipAddr, sn);
 //#if ( _WIZCHIP_ < 5200 )
    if((tmp != SOCK_MACRAW) && (tmp != SOCK_UDP) && (tmp != SOCK_IPRAW)) return SOCKERR_SOCKSTATUS;
 //#else
 //   if(tmp != SOCK_MACRAW && tmp != SOCK_UDP) return SOCKERR_SOCKSTATUS;
 //#endif
       
-   setSn_DIPR(sn,addr);
-   setSn_DPORT(sn,port);      
-   freesize = getSn_TxMAX(sn);
+   setSn_DIPR(ChipAddr, sn,addr);
+   setSn_DPORT(ChipAddr, sn,port);      
+   freesize = getSn_TxMAX(ChipAddr, sn);
    if (len > freesize) len = freesize; // check size not to exceed MAX size.
    while(1)
    {
-      freesize = getSn_TX_FSR(sn);
-      if(getSn_SR(sn) == SOCK_CLOSED) return SOCKERR_SOCKCLOSED;
+      freesize = getSn_TX_FSR(ChipAddr, sn);
+      if(getSn_SR(ChipAddr, sn) == SOCK_CLOSED) return SOCKERR_SOCKCLOSED;
       if( (sock_io_mode & (1<<sn)) && (len > freesize) ) return SOCK_BUSY;
       if(len <= freesize) break;
    };
-	wiz_send_data(sn, buf, len);
+	wiz_send_data(ChipAddr, sn, buf, len);
 
    #if _WIZCHIP_ < 5500   //M20150401 : for WIZCHIP Errata #4, #5 (ARP errata)
-      getSIPR((uint8_t*)&taddr);
+      getSIPR(ChipAddr, (uint8_t*)&taddr);
       if(taddr == 0)
       {
-         getSUBR((uint8_t*)&taddr);
-         setSUBR((uint8_t*)"\x00\x00\x00\x00");
+         getSUBR(ChipAddr, (uint8_t*)&taddr);
+         setSUBR(ChipAddr, (uint8_t*)"\x00\x00\x00\x00");
       }
       else taddr = 0;
    #endif
 
 //A20150601 : For W5300
 #if _WIZCHIP_ == 5300
-   setSn_TX_WRSR(sn, len);
+   setSn_TX_WRSR(ChipAddr, sn, len);
 #endif
 //   
-	setSn_CR(sn,Sn_CR_SEND);
+	setSn_CR(ChipAddr, sn,Sn_CR_SEND);
 	/* wait to process the command... */
-	while(getSn_CR(sn));
+	while(getSn_CR(ChipAddr, sn));
    while(1)
    {
-      tmp = getSn_IR(sn);
+      tmp = getSn_IR(ChipAddr, sn);
       if(tmp & Sn_IR_SENDOK)
       {
-         setSn_IR(sn, Sn_IR_SENDOK);
+         setSn_IR(ChipAddr, sn, Sn_IR_SENDOK);
          break;
       }
       //M:20131104
       //else if(tmp & Sn_IR_TIMEOUT) return SOCKERR_TIMEOUT;
       else if(tmp & Sn_IR_TIMEOUT)
       {
-         setSn_IR(sn, Sn_IR_TIMEOUT);
+         setSn_IR(ChipAddr, sn, Sn_IR_TIMEOUT);
          //M20150409 : Fixed the lost of sign bits by type casting.
          //len = (uint16_t)SOCKERR_TIMEOUT;
          //break;
          #if _WIZCHIP_ < 5500   //M20150401 : for WIZCHIP Errata #4, #5 (ARP errata)
-            if(taddr) setSUBR((uint8_t*)&taddr);
+            if(taddr) setSUBR(ChipAddr, (uint8_t*)&taddr);
          #endif
          return SOCKERR_TIMEOUT;
       }
       ////////////
    }
    #if _WIZCHIP_ < 5500   //M20150401 : for WIZCHIP Errata #4, #5 (ARP errata)
-      if(taddr) setSUBR((uint8_t*)&taddr);
+      if(taddr) setSUBR(ChipAddr, (uint8_t*)&taddr);
    #endif
    //M20150409 : Explicit Type Casting
    //return len;
@@ -591,7 +591,7 @@ int32_t sendto(uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16_t
 
 
 
-int32_t recvfrom(uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16_t *port)
+int32_t recvfrom(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16_t *port)
 {
 //M20150601 : For W5300   
 #if _WIZCHIP_ == 5300
@@ -608,10 +608,10 @@ int32_t recvfrom(uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16
    //CHECK_SOCKMODE(Sn_MR_UDP);
 //A20150601
 #if _WIZCHIP_ == 5300
-   mr1 = getMR();
+   mr1 = getMR(ChipAddr);
 #endif   
 
-   switch((mr=getSn_MR(sn)) & 0x0F)
+   switch((mr=getSn_MR(ChipAddr, sn)) & 0x0F)
    {
       case Sn_MR_UDP:
 	  case Sn_MR_IPRAW:
@@ -629,8 +629,8 @@ int32_t recvfrom(uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16
    {
       while(1)
       {
-         pack_len = getSn_RX_RSR(sn);
-         if(getSn_SR(sn) == SOCK_CLOSED) return SOCKERR_SOCKCLOSED;
+         pack_len = getSn_RX_RSR(ChipAddr, sn);
+         if(getSn_SR(ChipAddr, sn) == SOCK_CLOSED) return SOCKERR_SOCKCLOSED;
          if( (sock_io_mode & (1<<sn)) && (pack_len == 0) ) return SOCK_BUSY;
          if(pack_len != 0) break;
       };
@@ -642,9 +642,9 @@ int32_t recvfrom(uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16
 	   case Sn_MR_UDP :
 	      if(sock_remained_size[sn] == 0)
 	      {
-   			wiz_recv_data(sn, head, 8);
-   			setSn_CR(sn,Sn_CR_RECV);
-   			while(getSn_CR(sn));
+   			wiz_recv_data(ChipAddr, sn, head, 8);
+   			setSn_CR(ChipAddr, sn,Sn_CR_RECV);
+   			while(getSn_CR(ChipAddr, sn));
    			// read peer's IP address, port number & packet length
    	   //A20150601 : For W5300
    		#if _WIZCHIP_ == 5300
@@ -691,14 +691,14 @@ int32_t recvfrom(uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16
 			//
 			// Need to packet length check (default 1472)
 			//
-   		wiz_recv_data(sn, buf, pack_len); // data copy.
+   		wiz_recv_data(ChipAddr, sn, buf, pack_len); // data copy.
 			break;
 	   case Sn_MR_MACRAW :
 	      if(sock_remained_size[sn] == 0)
 	      {
-   			wiz_recv_data(sn, head, 2);
-   			setSn_CR(sn,Sn_CR_RECV);
-   			while(getSn_CR(sn));
+   			wiz_recv_data(ChipAddr, sn, head, 2);
+   			setSn_CR(ChipAddr, sn,Sn_CR_RECV);
+   			while(getSn_CR(ChipAddr, sn));
    			// read peer's IP address, port number & packet length
     			sock_remained_size[sn] = head[0];
    			sock_remained_size[sn] = (sock_remained_size[sn] <<8) + head[1] -2;
@@ -710,22 +710,22 @@ int32_t recvfrom(uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16
 			#endif
    			if(sock_remained_size[sn] > 1514) 
    			{
-   			   close(sn);
+   			   close(ChipAddr, sn);
    			   return SOCKFATAL_PACKLEN;
    			}
    			sock_pack_info[sn] = PACK_FIRST;
    	   }
 			if(len < sock_remained_size[sn]) pack_len = len;
 			else pack_len = sock_remained_size[sn];
-			wiz_recv_data(sn,buf,pack_len);
+			wiz_recv_data(ChipAddr, sn,buf,pack_len);
 		   break;
    //#if ( _WIZCHIP_ < 5200 )
 		case Sn_MR_IPRAW:
 		   if(sock_remained_size[sn] == 0)
 		   {
-   			wiz_recv_data(sn, head, 6);
-   			setSn_CR(sn,Sn_CR_RECV);
-   			while(getSn_CR(sn));
+   			wiz_recv_data(ChipAddr, sn, head, 6);
+   			setSn_CR(ChipAddr, sn,Sn_CR_RECV);
+   			while(getSn_CR(ChipAddr, sn));
    			addr[0] = head[0];
    			addr[1] = head[1];
    			addr[2] = head[2];
@@ -741,17 +741,17 @@ int32_t recvfrom(uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16
 			//
 			if(len < sock_remained_size[sn]) pack_len = len;
 			else pack_len = sock_remained_size[sn];
-   		wiz_recv_data(sn, buf, pack_len); // data copy.
+   		wiz_recv_data(ChipAddr, sn, buf, pack_len); // data copy.
 			break;
    //#endif
       default:
-         wiz_recv_ignore(sn, pack_len); // data copy.
+         wiz_recv_ignore(ChipAddr, sn, pack_len); // data copy.
          sock_remained_size[sn] = pack_len;
          break;
    }
-	setSn_CR(sn,Sn_CR_RECV);
+	setSn_CR(ChipAddr, sn,Sn_CR_RECV);
 	/* wait to process the command... */
-	while(getSn_CR(sn)) ;
+	while(getSn_CR(ChipAddr, sn)) ;
 	sock_remained_size[sn] -= pack_len;
 	//M20150601 : 
 	//if(sock_remained_size[sn] != 0) sock_pack_info[sn] |= 0x01;
@@ -773,7 +773,7 @@ int32_t recvfrom(uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16
 }
 
 
-int8_t  ctlsocket(uint8_t sn, ctlsock_type cstype, void* arg)
+int8_t  ctlsocket(uint32_t ChipAddr, uint8_t sn, ctlsock_type cstype, void* arg)
 {
    uint8_t tmp = 0;
    CHECK_SOCKNUM();
@@ -792,25 +792,25 @@ int8_t  ctlsocket(uint8_t sn, ctlsock_type cstype, void* arg)
          //
          break;
       case CS_GET_MAXTXBUF:
-         *((uint16_t*)arg) = getSn_TxMAX(sn);
+         *((uint16_t*)arg) = getSn_TxMAX(ChipAddr, sn);
          break;
       case CS_GET_MAXRXBUF:    
-         *((uint16_t*)arg) = getSn_RxMAX(sn);
+         *((uint16_t*)arg) = getSn_RxMAX(ChipAddr, sn);
          break;
       case CS_CLR_INTERRUPT:
          if( (*(uint8_t*)arg) > SIK_ALL) return SOCKERR_ARG;
-         setSn_IR(sn,*(uint8_t*)arg);
+         setSn_IR(ChipAddr, sn,*(uint8_t*)arg);
          break;
       case CS_GET_INTERRUPT:
-         *((uint8_t*)arg) = getSn_IR(sn);
+         *((uint8_t*)arg) = getSn_IR(ChipAddr, sn);
          break;
    #if _WIZCHIP_ != 5100
       case CS_SET_INTMASK:  
          if( (*(uint8_t*)arg) > SIK_ALL) return SOCKERR_ARG;
-         setSn_IMR(sn,*(uint8_t*)arg);
+         setSn_IMR(ChipAddr, sn,*(uint8_t*)arg);
          break;
       case CS_GET_INTMASK:   
-         *((uint8_t*)arg) = getSn_IMR(sn);
+         *((uint8_t*)arg) = getSn_IMR(ChipAddr, sn);
          break;
    #endif
       default:
@@ -819,7 +819,7 @@ int8_t  ctlsocket(uint8_t sn, ctlsock_type cstype, void* arg)
    return SOCK_OK;
 }
 
-int8_t  setsockopt(uint8_t sn, sockopt_type sotype, void* arg)
+int8_t  setsockopt(uint32_t ChipAddr, uint8_t sn, sockopt_type sotype, void* arg)
 {
  // M20131220 : Remove warning
  //uint8_t tmp;
@@ -827,42 +827,42 @@ int8_t  setsockopt(uint8_t sn, sockopt_type sotype, void* arg)
    switch(sotype)
    {
       case SO_TTL:
-         setSn_TTL(sn,*(uint8_t*)arg);
+         setSn_TTL(ChipAddr, sn,*(uint8_t*)arg);
          break;
       case SO_TOS:
-         setSn_TOS(sn,*(uint8_t*)arg);
+         setSn_TOS(ChipAddr, sn,*(uint8_t*)arg);
          break;
       case SO_MSS:
-         setSn_MSSR(sn,*(uint16_t*)arg);
+         setSn_MSSR(ChipAddr, sn,*(uint16_t*)arg);
          break;
       case SO_DESTIP:
-         setSn_DIPR(sn, (uint8_t*)arg);
+         setSn_DIPR(ChipAddr, sn, (uint8_t*)arg);
          break;
       case SO_DESTPORT:
-         setSn_DPORT(sn, *(uint16_t*)arg);
+         setSn_DPORT(ChipAddr, sn, *(uint16_t*)arg);
          break;
 #if _WIZCHIP_ != 5100
       case SO_KEEPALIVESEND:
-         CHECK_SOCKMODE(Sn_MR_TCP);
+         CHECK_SOCKMODE(ChipAddr, Sn_MR_TCP);
          #if _WIZCHIP_ > 5200
-            if(getSn_KPALVTR(sn) != 0) return SOCKERR_SOCKOPT;
+            if(getSn_KPALVTR(ChipAddr, sn) != 0) return SOCKERR_SOCKOPT;
          #endif
-            setSn_CR(sn,Sn_CR_SEND_KEEP);
-            while(getSn_CR(sn) != 0)
+            setSn_CR(ChipAddr, sn,Sn_CR_SEND_KEEP);
+            while(getSn_CR(ChipAddr, sn) != 0)
             {
                // M20131220
          		//if ((tmp = getSn_IR(sn)) & Sn_IR_TIMEOUT)
-               if (getSn_IR(sn) & Sn_IR_TIMEOUT)
+               if (getSn_IR(ChipAddr, sn) & Sn_IR_TIMEOUT)
          		{
-         			setSn_IR(sn, Sn_IR_TIMEOUT);
+         			setSn_IR(ChipAddr, sn, Sn_IR_TIMEOUT);
                   return SOCKERR_TIMEOUT;
          		}
             }
          break;
    #if !( (_WIZCHIP_ == 5100) || (_WIZCHIP_ == 5200) )
       case SO_KEEPALIVEAUTO:
-         CHECK_SOCKMODE(Sn_MR_TCP);
-         setSn_KPALVTR(sn,*(uint8_t*)arg);
+         CHECK_SOCKMODE(ChipAddr, Sn_MR_TCP);
+         setSn_KPALVTR(ChipAddr, sn,*(uint8_t*)arg);
          break;
    #endif      
 #endif   
@@ -872,47 +872,47 @@ int8_t  setsockopt(uint8_t sn, sockopt_type sotype, void* arg)
    return SOCK_OK;
 }
 
-int8_t  getsockopt(uint8_t sn, sockopt_type sotype, void* arg)
+int8_t  getsockopt(uint32_t ChipAddr, uint8_t sn, sockopt_type sotype, void* arg)
 {
    CHECK_SOCKNUM();
    switch(sotype)
    {
       case SO_FLAG:
-         *(uint8_t*)arg = getSn_MR(sn) & 0xF0;
+         *(uint8_t*)arg = getSn_MR(ChipAddr, sn) & 0xF0;
          break;
       case SO_TTL:
-         *(uint8_t*) arg = getSn_TTL(sn);
+         *(uint8_t*) arg = getSn_TTL(ChipAddr, sn);
          break;
       case SO_TOS:
-         *(uint8_t*) arg = getSn_TOS(sn);
+         *(uint8_t*) arg = getSn_TOS(ChipAddr, sn);
          break;
       case SO_MSS:   
-         *(uint16_t*) arg = getSn_MSSR(sn);
+         *(uint16_t*) arg = getSn_MSSR(ChipAddr, sn);
          break;
       case SO_DESTIP:
-         getSn_DIPR(sn, (uint8_t*)arg);
+         getSn_DIPR(ChipAddr, sn, (uint8_t*)arg);
          break;
       case SO_DESTPORT:  
-         *(uint16_t*) arg = getSn_DPORT(sn);
+         *(uint16_t*) arg = getSn_DPORT(ChipAddr, sn);
          break;
    #if _WIZCHIP_ > 5200   
       case SO_KEEPALIVEAUTO:
-         CHECK_SOCKMODE(Sn_MR_TCP);
-         *(uint16_t*) arg = getSn_KPALVTR(sn);
+         CHECK_SOCKMODE(ChipAddr, Sn_MR_TCP);
+         *(uint16_t*) arg = getSn_KPALVTR(ChipAddr, sn);
          break;
    #endif      
       case SO_SENDBUF:
-         *(uint16_t*) arg = getSn_TX_FSR(sn);
+         *(uint16_t*) arg = getSn_TX_FSR(ChipAddr, sn);
          break;
       case SO_RECVBUF:
-         *(uint16_t*) arg = getSn_RX_RSR(sn);
+         *(uint16_t*) arg = getSn_RX_RSR(ChipAddr, sn);
          break;
       case SO_STATUS:
-         *(uint8_t*) arg = getSn_SR(sn);
+         *(uint8_t*) arg = getSn_SR(ChipAddr, sn);
          break;
       case SO_REMAINSIZE:
-         if(getSn_MR(sn) & Sn_MR_TCP)
-            *(uint16_t*)arg = getSn_RX_RSR(sn);
+         if(getSn_MR(ChipAddr, sn) & Sn_MR_TCP)
+            *(uint16_t*)arg = getSn_RX_RSR(ChipAddr, sn);
          else
             *(uint16_t*)arg = sock_remained_size[sn];
          break;

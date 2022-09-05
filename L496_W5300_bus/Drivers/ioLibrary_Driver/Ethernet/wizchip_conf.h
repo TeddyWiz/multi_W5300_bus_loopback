@@ -58,12 +58,17 @@
 extern "C" {
 #endif
 
+#include "main.h"
 #include <stdint.h>
 /**
  * @brief Select WIZCHIP.
  * @todo You should select one, \b W5100, \b W5100S, \b W5200, \b W5300, \b W5500 or etc. \n\n
  *       ex> <code> #define \_WIZCHIP_      W5500 </code>
  */
+#define _USE_W5300_OPTIMIZE				1
+#define W5300_BANK_ADDR1                 ((uint32_t)0x60000000)//((uint32_t)0x64000000)
+#define W5300_BANK_ADDR2                 ((uint32_t)0x64000000)//((uint32_t)0x60000000)//((uint32_t)0x64000000)
+#define _W5300_DATA(a,p)                  *(__IO uint16_t *)(a + (p<<1))//(*(volatile unsigned short*) (W5300_BANK_ADDR + (p<<1)))
 
 #define W5100						5100
 #define W5100S						5100+5
@@ -516,7 +521,7 @@ void reg_wizchip_spiburst_cbfunc(void (*spi_rb)(uint8_t* pBuf, uint16_t len), vo
  * @return  0 : Success \n
  *         -1 : Fail because of invalid \ref ctlwizchip_type or unsupported \ref ctlwizchip_type in WIZCHIP 
  */          
-int8_t ctlwizchip(ctlwizchip_type cwtype, void* arg);
+int8_t ctlwizchip(uint32_t ChipAddr, ctlwizchip_type cwtype, void* arg);
 
 /**
  * @ingroup extra_functions
@@ -527,7 +532,7 @@ int8_t ctlwizchip(ctlwizchip_type cwtype, void* arg);
  * @return -1 : Fail because of invalid \ref ctlnetwork_type or unsupported \ref ctlnetwork_type in WIZCHIP \n
  *          0 : Success      
  */          
-int8_t ctlnetwork(ctlnetwork_type cntype, void* arg);
+int8_t ctlnetwork(uint32_t ChipAddr, ctlnetwork_type cntype, void* arg);
 
 
 /* 
@@ -539,7 +544,7 @@ int8_t ctlnetwork(ctlnetwork_type cntype, void* arg);
  * @ingroup extra_functions
  * @brief Reset WIZCHIP by softly.
  */ 
-void   wizchip_sw_reset(void);
+void   wizchip_sw_reset(uint32_t ChipAddr);
 
 /**
  * @ingroup extra_functions
@@ -549,35 +554,35 @@ void   wizchip_sw_reset(void);
  * @return 0 : succcess \n
  *        -1 : fail. Invalid buffer size
  */
-int8_t wizchip_init(uint8_t* txsize, uint8_t* rxsize);
+int8_t wizchip_init(uint32_t ChipAddr, uint8_t* txsize, uint8_t* rxsize);
 
 /** 
  * @ingroup extra_functions
  * @brief Clear Interrupt of WIZCHIP.
  * @param intr : @ref intr_kind value operated OR. It can type-cast to uint16_t.
  */
-void wizchip_clrinterrupt(intr_kind intr);
+void wizchip_clrinterrupt(uint32_t ChipAddr, intr_kind intr);
 
 /** 
  * @ingroup extra_functions
  * @brief Get Interrupt of WIZCHIP.
  * @return @ref intr_kind value operated OR. It can type-cast to uint16_t.
  */
-intr_kind wizchip_getinterrupt(void);
+intr_kind wizchip_getinterrupt(uint32_t ChipAddr);
 
 /** 
  * @ingroup extra_functions
  * @brief Mask or Unmask Interrupt of WIZCHIP.
  * @param intr : @ref intr_kind value operated OR. It can type-cast to uint16_t.
  */
-void wizchip_setinterruptmask(intr_kind intr);
+void wizchip_setinterruptmask(uint32_t ChipAddr, intr_kind intr);
 
 /** 
  * @ingroup extra_functions
  * @brief Get Interrupt mask of WIZCHIP.
  * @return : The operated OR vaule of @ref intr_kind. It can type-cast to uint16_t.
  */
-intr_kind wizchip_getinterruptmask(void);
+intr_kind wizchip_getinterruptmask(uint32_t ChipAddr);
 
 //todo
 #if _WIZCHIP_ > W5100
@@ -618,28 +623,28 @@ intr_kind wizchip_getinterruptmask(void);
  * @brief Set the network information for WIZCHIP
  * @param pnetinfo : @ref wizNetInfo
  */
-void wizchip_setnetinfo(wiz_NetInfo* pnetinfo);
+void wizchip_setnetinfo(uint32_t ChipAddr, wiz_NetInfo* pnetinfo);
 
 /**
  * @ingroup extra_functions
  * @brief Get the network information for WIZCHIP
  * @param pnetinfo : @ref wizNetInfo
  */
-void wizchip_getnetinfo(wiz_NetInfo* pnetinfo);
+void wizchip_getnetinfo(uint32_t ChipAddr, wiz_NetInfo* pnetinfo);
 
 /**
  * @ingroup extra_functions
  * @brief Set the network mode such WOL, PPPoE, Ping Block, and etc. 
  * @param pnetinfo Value of network mode. Refer to @ref netmode_type.
  */
-int8_t wizchip_setnetmode(netmode_type netmode);
+int8_t wizchip_setnetmode(uint32_t ChipAddr, netmode_type netmode);
 
 /**
  * @ingroup extra_functions
  * @brief Get the network mode such WOL, PPPoE, Ping Block, and etc. 
  * @return Value of network mode. Refer to @ref netmode_type.
  */
-netmode_type wizchip_getnetmode(void);
+netmode_type wizchip_getnetmode(uint32_t ChipAddr);
 
 /**
  * @ingroup extra_functions
@@ -647,7 +652,7 @@ netmode_type wizchip_getnetmode(void);
  * @details @ref _RTR_ configures the retransmission timeout period and @ref _RCR_ configures the number of time of retransmission.  
  * @param nettime @ref _RTR_ value and @ref _RCR_ value. Refer to @ref wiz_NetTimeout. 
  */
-void wizchip_settimeout(wiz_NetTimeout* nettime);
+void wizchip_settimeout(uint32_t ChipAddr, wiz_NetTimeout* nettime);
 
 /**
  * @ingroup extra_functions
@@ -655,7 +660,7 @@ void wizchip_settimeout(wiz_NetTimeout* nettime);
  * @details @ref _RTR_ configures the retransmission timeout period and @ref _RCR_ configures the number of time of retransmission.  
  * @param nettime @ref _RTR_ value and @ref _RCR_ value. Refer to @ref wiz_NetTimeout. 
  */
-void wizchip_gettimeout(wiz_NetTimeout* nettime);
+void wizchip_gettimeout(uint32_t ChipAddr, wiz_NetTimeout* nettime);
 #ifdef __cplusplus
  }
 #endif

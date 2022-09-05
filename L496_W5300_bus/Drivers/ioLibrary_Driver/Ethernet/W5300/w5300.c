@@ -54,10 +54,10 @@
  * Basic I/O  Function *
  ***********************/
  
-void     WIZCHIP_WRITE(uint32_t AddrSel, uint16_t wb )
+void     WIZCHIP_WRITE(uint32_t ChipAddr, uint32_t AddrSel, uint16_t wb )
 {
 #if _USE_W5300_OPTIMIZE
-	_W5300_DATA(AddrSel) = wb;
+	_W5300_DATA(ChipAddr, AddrSel) = wb;
 #else
 	WIZCHIP_CRITICAL_ENTER();
     WIZCHIP.CS._select();
@@ -92,11 +92,11 @@ void     WIZCHIP_WRITE(uint32_t AddrSel, uint16_t wb )
 #endif
 }
 
-uint16_t WIZCHIP_READ(uint32_t AddrSel)
+uint16_t WIZCHIP_READ(uint32_t ChipAddr, uint32_t AddrSel)
 {
    uint16_t ret;
 #if _USE_W5300_OPTIMIZE
-   ret = _W5300_DATA(AddrSel);
+   ret = _W5300_DATA(ChipAddr, AddrSel);
 #else
    WIZCHIP_CRITICAL_ENTER();
    WIZCHIP.CS._select();
@@ -133,60 +133,60 @@ uint16_t WIZCHIP_READ(uint32_t AddrSel)
 }
 
 
-void setTMSR(uint8_t sn,uint8_t tmsr)
+void setTMSR(uint32_t ChipAddr, uint8_t sn,uint8_t tmsr)
 {
    uint16_t tmem;
-   tmem = WIZCHIP_READ(WIZCHIP_OFFSET_INC(TMS01R, (sn & 0xFE)));
+   tmem = WIZCHIP_READ(ChipAddr, WIZCHIP_OFFSET_INC(TMS01R, (sn & 0xFE)));
    if(sn & 0x01)  tmem = (tmem & 0xFF00) | (((uint16_t)tmsr ) & 0x00FF) ;
    else tmem =  (tmem & 0x00FF) | (((uint16_t)tmsr) << 8) ;
-   WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(TMS01R, (sn & 0xFE)),tmem);
+   WIZCHIP_WRITE(ChipAddr, WIZCHIP_OFFSET_INC(TMS01R, (sn & 0xFE)),tmem);
 }
    
-uint8_t getTMSR(uint8_t sn)
+uint8_t getTMSR(uint32_t ChipAddr, uint8_t sn)
 {
    if(sn & 0x01)
-      return (uint8_t)(WIZCHIP_READ(WIZCHIP_OFFSET_INC(TMS01R, (sn & 0xFE))) & 0x00FF);
-   return (uint8_t)(WIZCHIP_READ(WIZCHIP_OFFSET_INC(TMS01R, (sn & 0xFE))) >> 8);
+      return (uint8_t)(WIZCHIP_READ(ChipAddr, WIZCHIP_OFFSET_INC(TMS01R, (sn & 0xFE))) & 0x00FF);
+   return (uint8_t)(WIZCHIP_READ(ChipAddr, WIZCHIP_OFFSET_INC(TMS01R, (sn & 0xFE))) >> 8);
 }
 
-void setRMSR(uint8_t sn,uint8_t rmsr)
+void setRMSR(uint32_t ChipAddr, uint8_t sn,uint8_t rmsr)
 {
    uint16_t rmem;
-   rmem = WIZCHIP_READ(WIZCHIP_OFFSET_INC(RMS01R, (sn & 0xFE)));
+   rmem = WIZCHIP_READ(ChipAddr, WIZCHIP_OFFSET_INC(RMS01R, (sn & 0xFE)));
    if(sn & 0x01)  rmem = (rmem & 0xFF00) | (((uint16_t)rmsr ) & 0x00FF) ;
    else rmem =  (rmem & 0x00FF) | (((uint16_t)rmsr) << 8) ;
-   WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(RMS01R, (sn & 0xFE)),rmem);
+   WIZCHIP_WRITE(ChipAddr, WIZCHIP_OFFSET_INC(RMS01R, (sn & 0xFE)),rmem);
 }
    
-uint8_t getRMSR(uint8_t sn)
+uint8_t getRMSR(uint32_t ChipAddr, uint8_t sn)
 {
    if(sn & 0x01)
-      return (uint8_t)(WIZCHIP_READ(WIZCHIP_OFFSET_INC(RMS01R, (sn & 0xFE))) & 0x00FF);
-   return (uint8_t)(WIZCHIP_READ(WIZCHIP_OFFSET_INC(RMS01R, (sn & 0xFE))) >> 8);
+      return (uint8_t)(WIZCHIP_READ(ChipAddr, WIZCHIP_OFFSET_INC(RMS01R, (sn & 0xFE))) & 0x00FF);
+   return (uint8_t)(WIZCHIP_READ(ChipAddr, WIZCHIP_OFFSET_INC(RMS01R, (sn & 0xFE))) >> 8);
 }
 
-uint32_t getSn_TX_FSR(uint8_t sn)
+uint32_t getSn_TX_FSR(uint32_t ChipAddr, uint8_t sn)
 {
    uint32_t free_tx_size=0;
    uint32_t free_tx_size1=1;
    while(1)
    {
-      free_tx_size = (((uint32_t)WIZCHIP_READ(Sn_TX_FSR(sn))) << 16) | 
-                     (((uint32_t)WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_FSR(sn),2))) & 0x0000FFFF);                           // read
+      free_tx_size = (((uint32_t)WIZCHIP_READ(ChipAddr, Sn_TX_FSR(sn))) << 16) | 
+                     (((uint32_t)WIZCHIP_READ(ChipAddr, WIZCHIP_OFFSET_INC(Sn_TX_FSR(sn),2))) & 0x0000FFFF);                           // read
       if(free_tx_size == free_tx_size1) break;  // if first == sencond, Sn_TX_FSR value is valid.                                                          
       free_tx_size1 = free_tx_size;             // save second value into first                                                   
    }                                                                       
    return free_tx_size;                                                    
 }                                                                          
 
-uint32_t getSn_RX_RSR(uint8_t sn)
+uint32_t getSn_RX_RSR(uint32_t ChipAddr, uint8_t sn)
 {
    uint32_t received_rx_size=0;
    uint32_t received_rx_size1=1;
    while(1)
    {
-      received_rx_size = (((uint32_t)WIZCHIP_READ(Sn_RX_RSR(sn))) << 16) | 
-                         (((uint32_t)WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RSR(sn),2))) & 0x0000FFFF);
+      received_rx_size = (((uint32_t)WIZCHIP_READ(ChipAddr, Sn_RX_RSR(sn))) << 16) | 
+                         (((uint32_t)WIZCHIP_READ(ChipAddr, WIZCHIP_OFFSET_INC(Sn_RX_RSR(sn),2))) & 0x0000FFFF);
       if(received_rx_size == received_rx_size1) break;                                                                         
       received_rx_size1 = received_rx_size;                                      // if first == sencond, Sn_RX_RSR value is valid.
    }                                                                             // save second value into first                
@@ -194,16 +194,16 @@ uint32_t getSn_RX_RSR(uint8_t sn)
 }
 
 
-void wiz_send_data(uint8_t sn, uint8_t *wizdata, uint32_t len)
+void wiz_send_data(uint32_t ChipAddr, uint8_t sn, uint8_t *wizdata, uint32_t len)
 {
    uint32_t i = 0;
    if(len == 0)  return;
    
    for(i = 0; i < len ; i += 2)
-      setSn_TX_FIFOR(sn, (((uint16_t)wizdata[i]) << 8) | (((uint16_t)wizdata[i+1]) & 0x00FF))
+      setSn_TX_FIFOR(ChipAddr, sn, (((uint16_t)wizdata[i]) << 8) | (((uint16_t)wizdata[i+1]) & 0x00FF))
 }
 
-void wiz_recv_data(uint8_t sn, uint8_t *wizdata, uint32_t len)
+void wiz_recv_data(uint32_t ChipAddr, uint8_t sn, uint8_t *wizdata, uint32_t len)
 {
    uint16_t rd = 0;
    uint32_t i = 0;
@@ -214,7 +214,7 @@ void wiz_recv_data(uint8_t sn, uint8_t *wizdata, uint32_t len)
    {
       if((i & 0x01)==0)
       {
-         rd = getSn_RX_FIFOR(sn);
+         rd = getSn_RX_FIFOR(ChipAddr, sn);
          wizdata[i]   = (uint8_t)(rd >> 8);
       }
       else  wizdata[i] = (uint8_t)rd;  // For checking the memory access violation
@@ -222,10 +222,10 @@ void wiz_recv_data(uint8_t sn, uint8_t *wizdata, uint32_t len)
    sock_remained_byte[sn] = (uint8_t)rd; // back up the remaind fifo byte.
 }
 
-void wiz_recv_ignore(uint8_t sn, uint32_t len)
+void wiz_recv_ignore(uint32_t ChipAddr, uint8_t sn, uint32_t len)
 {
    uint32_t i = 0;
-   for(i = 0; i < len ; i += 2) getSn_RX_FIFOR(sn);
+   for(i = 0; i < len ; i += 2) getSn_RX_FIFOR(ChipAddr, sn);
 }
 
 
