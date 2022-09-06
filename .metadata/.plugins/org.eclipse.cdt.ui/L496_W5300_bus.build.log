@@ -1,10 +1,10 @@
-08:41:36 **** Incremental Build of configuration Debug for project L496_W5300_bus ****
+15:33:37 **** Incremental Build of configuration Debug for project L496_W5300_bus ****
 make -j16 all 
 arm-none-eabi-size   L496_W5300_bus.elf 
    text	   data	    bss	    dec	    hex	filename
-  31316	    228	   3980	  35524	   8ac4	L496_W5300_bus.elf
+  31428	    228	   6028	  37684	   9334	L496_W5300_bus.elf
 Finished building: default.size.stdout
  
 
-08:41:37 Build Finished. 0 errors, 0 warnings. (took 290ms)
+15:33:37 Build Finished. 0 errors, 0 warnings. (took 241ms)
 

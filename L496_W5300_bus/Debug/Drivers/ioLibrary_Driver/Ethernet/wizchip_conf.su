@@ -23,9 +23,9 @@
 ../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:589:11:wizchip_getinterruptmask	24	static
 ../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:618:8:wizphy_getphylink	16	static
 ../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:639:8:wizphy_getphypmode	16	static
-../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:854:6:wizchip_setnetinfo	16	static
-../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:867:6:wizchip_getnetinfo	16	static
-../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:880:8:wizchip_setnetmode	24	static
-../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:894:14:wizchip_getnetmode	16	static
-../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:899:6:wizchip_settimeout	16	static
-../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:905:6:wizchip_gettimeout	16	static
+../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:854:6:wizchip_setnetinfo	24	static
+../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:868:6:wizchip_getnetinfo	16	static
+../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:881:8:wizchip_setnetmode	24	static
+../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:895:14:wizchip_getnetmode	16	static
+../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:900:6:wizchip_settimeout	16	static
+../Drivers/ioLibrary_Driver/Ethernet/wizchip_conf.c:906:6:wizchip_gettimeout	16	static
