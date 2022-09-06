@@ -67,8 +67,8 @@ all: main-build
 main-build: L496_W5300_bus.elf secondary-outputs
 
 # Tool invocations
-L496_W5300_bus.elf L496_W5300_bus.map: $(OBJS) $(USER_OBJS) D:\wiznet\Workspace_Code\14_W5300\multi_W5300_bus_loopback\L496_W5300_bus\STM32L496ZGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "L496_W5300_bus.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\wiznet\Workspace_Code\14_W5300\multi_W5300_bus_loopback\L496_W5300_bus\STM32L496ZGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="L496_W5300_bus.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+L496_W5300_bus.elf L496_W5300_bus.map: $(OBJS) $(USER_OBJS) D:\Github\TeddyWiz\multi_W5300_bus_loopback\L496_W5300_bus\STM32L496ZGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "L496_W5300_bus.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\Github\TeddyWiz\multi_W5300_bus_loopback\L496_W5300_bus\STM32L496ZGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="L496_W5300_bus.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

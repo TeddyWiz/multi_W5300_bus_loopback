@@ -24,7 +24,7 @@ int32_t loopback_tcps(uint32_t ChipAddr, uint8_t sn, uint8_t* buf, uint16_t port
 			getSn_DIPR(ChipAddr, sn, destip);
 			destport = getSn_DPORT(ChipAddr, sn);
 
-			printf("%d:Connected - %d.%d.%d.%d : %d\r\n",sn, destip[0], destip[1], destip[2], destip[3], destport);
+			printf("%x -> %d:Connected - %d.%d.%d.%d : %d\r\n", ChipAddr ,sn, destip[0], destip[1], destip[2], destip[3], destport);
 #endif
 			setSn_IR(ChipAddr, sn,Sn_IR_CON);
          }
@@ -32,7 +32,7 @@ int32_t loopback_tcps(uint32_t ChipAddr, uint8_t sn, uint8_t* buf, uint16_t port
          {
 			if(size > DATA_BUF_SIZE) size = DATA_BUF_SIZE;
 			ret = recv(ChipAddr, sn, buf, size);
-
+			printf("%x -> %d:recv[%d][%d][%s]\r\n", ChipAddr ,sn, size, ret, buf);
 			if(ret <= 0) return ret;      // check SOCKERR_BUSY & SOCKERR_XXX. For showing the occurrence of SOCKERR_BUSY.
 			size = (uint16_t) ret;
 			sentsize = 0;
@@ -51,7 +51,7 @@ int32_t loopback_tcps(uint32_t ChipAddr, uint8_t sn, uint8_t* buf, uint16_t port
          break;
       case SOCK_CLOSE_WAIT :
 #ifdef _LOOPBACK_DEBUG_
-         //printf("%d:CloseWait\r\n",sn);
+         printf("%d:CloseWait\r\n",sn);
 #endif
          if((ret = disconnect(ChipAddr, sn)) != SOCK_OK) return ret;
 #ifdef _LOOPBACK_DEBUG_

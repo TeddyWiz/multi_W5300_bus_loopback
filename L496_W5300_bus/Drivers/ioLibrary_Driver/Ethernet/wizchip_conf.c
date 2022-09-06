@@ -327,8 +327,8 @@ int8_t ctlwizchip(uint32_t ChipAddr, ctlwizchip_type cwtype, void* arg)
          ((uint8_t*)arg)[2] = WIZCHIP.id[2];
          ((uint8_t*)arg)[3] = WIZCHIP.id[3];
          ((uint8_t*)arg)[4] = WIZCHIP.id[4];
-         ((uint8_t*)arg)[5] = WIZCHIP.id[5];
-         ((uint8_t*)arg)[6] = 0;
+         //((uint8_t*)arg)[5] = WIZCHIP.id[5];
+         ((uint8_t*)arg)[5] = 0;
          break;
    #if _WIZCHIP_ == W5100S || _WIZCHIP_ == W5500
       case CW_RESET_PHY:
@@ -853,6 +853,7 @@ int8_t wizphy_setphypmode(uint8_t pmode)
 
 void wizchip_setnetinfo(uint32_t ChipAddr, wiz_NetInfo* pnetinfo)
 {
+   uint8_t mac[6]={0,0};
    setSHAR(ChipAddr, pnetinfo->mac);
    setGAR(ChipAddr, pnetinfo->gw);
    setSUBR(ChipAddr, pnetinfo->sn);
