@@ -181,30 +181,17 @@ uint32_t getSn_TX_FSR(uint32_t ChipAddr, uint8_t sn)
 
 uint32_t getSn_RX_RSR(uint32_t ChipAddr, uint8_t sn)
 {
-    uint16_t* sock_any_port_df_p;
-    uint16_t* sock_any_port_p;
-    uint16_t* sock_io_mode_p;
-    uint16_t* sock_is_sending_p;
-    uint16_t* sock_remained_size_p;
     uint8_t* sock_pack_info_p;
-    uint8_t* sock_remained_byte_p;
-
+    uint8_t Chip_num;
     if(ChipAddr == W5300_BANK_ADDR1)
     {
-        sock_pack_info_p = &sock_pack_infon[0][sn];
+        Chip_num = 0;
     }
-    else if(ChipAddr == W5300_BANK_ADDR2)
+    else
     {
-        sock_pack_info_p = &sock_pack_infon[1][sn];
+        Chip_num = (ChipAddr-0x60000000)/0x4000000;
     }
-    else if(ChipAddr == W5300_BANK_ADDR3)
-    {
-        sock_pack_info_p = &sock_pack_infon[2][sn];
-    }
-    else if(ChipAddr == W5300_BANK_ADDR4)
-    {
-        sock_pack_info_p = &sock_pack_infon[3][sn];
-    }
+    sock_pack_info_p = &sock_pack_infon[Chip_num][sn];
     
    uint32_t received_rx_size=0;
    uint32_t received_rx_size1=1;
@@ -230,30 +217,17 @@ void wiz_send_data(uint32_t ChipAddr, uint8_t sn, uint8_t *wizdata, uint32_t len
 
 void wiz_recv_data(uint32_t ChipAddr, uint8_t sn, uint8_t *wizdata, uint32_t len)
 {
-    uint16_t* sock_any_port_df_p;
-    uint16_t* sock_any_port_p;
-    uint16_t* sock_io_mode_p;
-    uint16_t* sock_is_sending_p;
-    uint16_t* sock_remained_size_p;
-    uint8_t* sock_pack_info_p;
     uint8_t* sock_remained_byte_p;
-
+    uint8_t Chip_num;
     if(ChipAddr == W5300_BANK_ADDR1)
     {
-        sock_remained_byte_p = &sock_remained_byten[0][sn];
+        Chip_num = 0;
     }
-    else if(ChipAddr == W5300_BANK_ADDR2)
+    else
     {
-        sock_remained_byte_p = &sock_remained_byten[1][sn];
+        Chip_num = (ChipAddr-0x60000000)/0x4000000;
     }
-    else if(ChipAddr == W5300_BANK_ADDR3)
-    {
-        sock_remained_byte_p = &sock_remained_byten[2][sn];
-    }
-    else if(ChipAddr == W5300_BANK_ADDR4)
-    {
-        sock_remained_byte_p = &sock_remained_byten[3][sn];
-    }
+    sock_remained_byte_p = &sock_remained_byten[Chip_num][sn];
     
    uint16_t rd = 0;
    uint32_t i = 0;
