@@ -57,17 +57,25 @@
 
 //M20150401 : Typing Error
 //#define SOCK_ANY_PORT_NUM  0xC000;
+#if 1
+uint16_t sock_any_port_numn[4] = {0xB000, 0xC000, 0xD000, 0xE000};
+#define SOCK_ANY_PORT_NUM1  0xB000
+#define SOCK_ANY_PORT_NUM2  0xC000
+#define SOCK_ANY_PORT_NUM3  0xD000
+#define SOCK_ANY_PORT_NUM4  0xE000
+#else
 #define SOCK_ANY_PORT_NUM  0xC000
+#endif
 
-static uint16_t sock_any_port = SOCK_ANY_PORT_NUM;
-static uint16_t sock_io_mode = 0;
-static uint16_t sock_is_sending = 0;
+static uint16_t sock_any_portn[4] = {SOCK_ANY_PORT_NUM1, SOCK_ANY_PORT_NUM2, SOCK_ANY_PORT_NUM3, SOCK_ANY_PORT_NUM4};
+static uint16_t sock_io_moden[4] = {0,};
+static uint16_t sock_is_sendingn[4] = {0,};
 
-static uint16_t sock_remained_size[_WIZCHIP_SOCK_NUM_] = {0,0,};
+static uint16_t sock_remained_sizen[4][_WIZCHIP_SOCK_NUM_] = {0,0,};
 
 //M20150601 : For extern decleation
 //static uint8_t  sock_pack_info[_WIZCHIP_SOCK_NUM_] = {0,};
-uint8_t  sock_pack_info[_WIZCHIP_SOCK_NUM_] = {0,};
+uint8_t  sock_pack_infon[4][_WIZCHIP_SOCK_NUM_] = {0,};
 //
 
 #if _WIZCHIP_ == 5200
@@ -76,7 +84,7 @@ uint8_t  sock_pack_info[_WIZCHIP_SOCK_NUM_] = {0,};
 
 //A20150601 : For integrating with W5300
 #if _WIZCHIP_ == 5300
-   uint8_t sock_remained_byte[_WIZCHIP_SOCK_NUM_] = {0,}; // set by wiz_recv_data()
+   uint8_t sock_remained_byten[4][_WIZCHIP_SOCK_NUM_] = {0,}; // set by wiz_recv_data()
 #endif
 
 
@@ -104,6 +112,55 @@ uint8_t  sock_pack_info[_WIZCHIP_SOCK_NUM_] = {0,};
 
 int8_t socket(uint32_t ChipAddr, uint8_t sn, uint8_t protocol, uint16_t port, uint8_t flag)
 {
+    uint16_t* sock_any_port_df_p;
+    uint16_t* sock_any_port_p;
+    uint16_t* sock_io_mode_p;
+    uint16_t* sock_is_sending_p;
+    uint16_t* sock_remained_size_p;
+    uint8_t* sock_pack_info_p;
+    uint8_t* sock_remained_byte_p;
+
+    if(ChipAddr == W5300_BANK_ADDR1)
+    {
+        sock_any_port_df_p = &sock_any_portn[0];
+        sock_any_port_p = &sock_any_portn[0];
+        sock_io_mode_p = &sock_io_moden[0];
+        sock_is_sending_p = &sock_is_sendingn[0];
+        sock_remained_size_p = &sock_remained_sizen[0][sn];
+        sock_pack_info_p = &sock_pack_infon[0][sn];
+        sock_remained_byte_p = &sock_remained_byten[0][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR2)
+    {
+        sock_any_port_df_p = &sock_any_portn[1];
+        sock_any_port_p = &sock_any_portn[1];
+        sock_io_mode_p = &sock_io_moden[1];
+        sock_is_sending_p = &sock_is_sendingn[1];
+        sock_remained_size_p = &sock_remained_sizen[1][sn];
+        sock_pack_info_p = &sock_pack_infon[1][sn];
+        sock_remained_byte_p = &sock_remained_byten[1][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR3)
+    {
+        sock_any_port_df_p = &sock_any_portn[2];
+        sock_any_port_p = &sock_any_portn[2];
+        sock_io_mode_p = &sock_io_moden[2];
+        sock_is_sending_p = &sock_is_sendingn[2];
+        sock_remained_size_p = &sock_remained_sizen[2][sn];
+        sock_pack_info_p = &sock_pack_infon[2][sn];
+        sock_remained_byte_p = &sock_remained_byten[2][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR4)
+    {
+        sock_any_port_df_p = &sock_any_portn[3];
+        sock_any_port_p = &sock_any_portn[3];
+        sock_io_mode_p = &sock_io_moden[3];
+        sock_is_sending_p = &sock_is_sendingn[3];
+        sock_remained_size_p = &sock_remained_sizen[3][sn];
+        sock_pack_info_p = &sock_pack_infon[3][sn];
+        sock_remained_byte_p = &sock_remained_byten[3][sn];
+    }
+    
 	CHECK_SOCKNUM();
 	switch(protocol)
 	{
@@ -175,21 +232,21 @@ int8_t socket(uint32_t ChipAddr, uint8_t sn, uint8_t protocol, uint16_t port, ui
     #endif
 	if(!port)
 	{
-	   port = sock_any_port++;
-	   if(sock_any_port == 0xFFF0) sock_any_port = SOCK_ANY_PORT_NUM;
+	   port = *sock_any_port_p++;
+	   if(*sock_any_port_p == 0xFFF0) *sock_any_port_p = *sock_any_port_df_p;
 	}
    setSn_PORT(ChipAddr, sn,port);	
    setSn_CR(ChipAddr, sn,Sn_CR_OPEN);
    while(getSn_CR(ChipAddr, sn));
    //A20150401 : For release the previous sock_io_mode
-   sock_io_mode &= ~(1 <<sn);
+   *sock_io_mode_p &= ~(1 <<sn);
    //
-	sock_io_mode |= ((flag & SF_IO_NONBLOCK) << sn);   
-   sock_is_sending &= ~(1<<sn);
-   sock_remained_size[sn] = 0;
+	*sock_io_mode_p |= ((flag & SF_IO_NONBLOCK) << sn);   
+   *sock_is_sending_p &= ~(1<<sn);
+   *sock_remained_size_p = 0;
    //M20150601 : repalce 0 with PACK_COMPLETED
    //sock_pack_info[sn] = 0;
-   sock_pack_info[sn] = PACK_COMPLETED;
+   *sock_pack_info_p = PACK_COMPLETED;
    //
    while(getSn_SR(ChipAddr, sn) == SOCK_CLOSED);
    return (int8_t)sn;
@@ -197,6 +254,55 @@ int8_t socket(uint32_t ChipAddr, uint8_t sn, uint8_t protocol, uint16_t port, ui
 
 int8_t close(uint32_t ChipAddr, uint8_t sn)
 {
+    uint16_t* sock_any_port_df_p;
+    uint16_t* sock_any_port_p;
+    uint16_t* sock_io_mode_p;
+    uint16_t* sock_is_sending_p;
+    uint16_t* sock_remained_size_p;
+    uint8_t* sock_pack_info_p;
+    uint8_t* sock_remained_byte_p;
+
+    if(ChipAddr == W5300_BANK_ADDR1)
+    {
+        sock_any_port_df_p = &sock_any_portn[0];
+        sock_any_port_p = &sock_any_portn[0];
+        sock_io_mode_p = &sock_io_moden[0];
+        sock_is_sending_p = &sock_is_sendingn[0];
+        sock_remained_size_p = &sock_remained_sizen[0][sn];
+        sock_pack_info_p = &sock_pack_infon[0][sn];
+        sock_remained_byte_p = &sock_remained_byten[0][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR2)
+    {
+        sock_any_port_df_p = &sock_any_portn[1];
+        sock_any_port_p = &sock_any_portn[1];
+        sock_io_mode_p = &sock_io_moden[1];
+        sock_is_sending_p = &sock_is_sendingn[1];
+        sock_remained_size_p = &sock_remained_sizen[1][sn];
+        sock_pack_info_p = &sock_pack_infon[1][sn];
+        sock_remained_byte_p = &sock_remained_byten[1][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR3)
+    {
+        sock_any_port_df_p = &sock_any_portn[2];
+        sock_any_port_p = &sock_any_portn[2];
+        sock_io_mode_p = &sock_io_moden[2];
+        sock_is_sending_p = &sock_is_sendingn[2];
+        sock_remained_size_p = &sock_remained_sizen[2][sn];
+        sock_pack_info_p = &sock_pack_infon[2][sn];
+        sock_remained_byte_p = &sock_remained_byten[2][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR4)
+    {
+        sock_any_port_df_p = &sock_any_portn[3];
+        sock_any_port_p = &sock_any_portn[3];
+        sock_io_mode_p = &sock_io_moden[3];
+        sock_is_sending_p = &sock_is_sendingn[3];
+        sock_remained_size_p = &sock_remained_sizen[3][sn];
+        sock_pack_info_p = &sock_pack_infon[3][sn];
+        sock_remained_byte_p = &sock_remained_byten[3][sn];
+    }
+    
 	CHECK_SOCKNUM();
 //A20160426 : Applied the erratum 1 of W5300
 #if   (_WIZCHIP_ == 5300) 
@@ -229,11 +335,11 @@ int8_t close(uint32_t ChipAddr, uint8_t sn)
 	/* clear all interrupt of the socket. */
 	setSn_IR(ChipAddr, sn, 0xFF);
 	//A20150401 : Release the sock_io_mode of socket n.
-	sock_io_mode &= ~(1<<sn);
+	*sock_io_mode_p &= ~(1<<sn);
 	//
-	sock_is_sending &= ~(1<<sn);
-	sock_remained_size[sn] = 0;
-	sock_pack_info[sn] = 0;
+	*sock_is_sending_p &= ~(1<<sn);
+	*sock_remained_size_p = 0;
+	*sock_pack_info_p = 0;
 	while(getSn_SR(ChipAddr, sn) != SOCK_CLOSED);
 	return SOCK_OK;
 }
@@ -256,6 +362,55 @@ int8_t listen(uint32_t ChipAddr, uint8_t sn)
 
 int8_t connect(uint32_t ChipAddr, uint8_t sn, uint8_t * addr, uint16_t port)
 {
+    uint16_t* sock_any_port_df_p;
+    uint16_t* sock_any_port_p;
+    uint16_t* sock_io_mode_p;
+    uint16_t* sock_is_sending_p;
+    uint16_t* sock_remained_size_p;
+    uint8_t* sock_pack_info_p;
+    uint8_t* sock_remained_byte_p;
+
+    if(ChipAddr == W5300_BANK_ADDR1)
+    {
+        sock_any_port_df_p = &sock_any_portn[0];
+        sock_any_port_p = &sock_any_portn[0];
+        sock_io_mode_p = &sock_io_moden[0];
+        sock_is_sending_p = &sock_is_sendingn[0];
+        sock_remained_size_p = &sock_remained_sizen[0][sn];
+        sock_pack_info_p = &sock_pack_infon[0][sn];
+        sock_remained_byte_p = &sock_remained_byten[0][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR2)
+    {
+        sock_any_port_df_p = &sock_any_portn[1];
+        sock_any_port_p = &sock_any_portn[1];
+        sock_io_mode_p = &sock_io_moden[1];
+        sock_is_sending_p = &sock_is_sendingn[1];
+        sock_remained_size_p = &sock_remained_sizen[1][sn];
+        sock_pack_info_p = &sock_pack_infon[1][sn];
+        sock_remained_byte_p = &sock_remained_byten[1][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR3)
+    {
+        sock_any_port_df_p = &sock_any_portn[2];
+        sock_any_port_p = &sock_any_portn[2];
+        sock_io_mode_p = &sock_io_moden[2];
+        sock_is_sending_p = &sock_is_sendingn[2];
+        sock_remained_size_p = &sock_remained_sizen[2][sn];
+        sock_pack_info_p = &sock_pack_infon[2][sn];
+        sock_remained_byte_p = &sock_remained_byten[2][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR4)
+    {
+        sock_any_port_df_p = &sock_any_portn[3];
+        sock_any_port_p = &sock_any_portn[3];
+        sock_io_mode_p = &sock_io_moden[3];
+        sock_is_sending_p = &sock_is_sendingn[3];
+        sock_remained_size_p = &sock_remained_sizen[3][sn];
+        sock_pack_info_p = &sock_pack_infon[3][sn];
+        sock_remained_byte_p = &sock_remained_byten[3][sn];
+    }
+    
    CHECK_SOCKNUM();
    CHECK_SOCKMODE(ChipAddr, Sn_MR_TCP);
    CHECK_SOCKINIT(ChipAddr);
@@ -276,7 +431,7 @@ int8_t connect(uint32_t ChipAddr, uint8_t sn, uint8_t * addr, uint16_t port)
 	setSn_DPORT(ChipAddr, sn,port);
 	setSn_CR(ChipAddr, sn,Sn_CR_CONNECT);
    while(getSn_CR(ChipAddr, sn));
-   if(sock_io_mode & (1<<sn)) return SOCK_BUSY;
+   if(*sock_io_mode_p & (1<<sn)) return SOCK_BUSY;
    while(getSn_SR(ChipAddr, sn) != SOCK_ESTABLISHED)
    {
 		if (getSn_IR(ChipAddr, sn) & Sn_IR_TIMEOUT)
@@ -296,13 +451,62 @@ int8_t connect(uint32_t ChipAddr, uint8_t sn, uint8_t * addr, uint16_t port)
 
 int8_t disconnect(uint32_t ChipAddr, uint8_t sn)
 {
+    uint16_t* sock_any_port_df_p;
+    uint16_t* sock_any_port_p;
+    uint16_t* sock_io_mode_p;
+    uint16_t* sock_is_sending_p;
+    uint16_t* sock_remained_size_p;
+    uint8_t* sock_pack_info_p;
+    uint8_t* sock_remained_byte_p;
+
+    if(ChipAddr == W5300_BANK_ADDR1)
+    {
+        sock_any_port_df_p = &sock_any_portn[0];
+        sock_any_port_p = &sock_any_portn[0];
+        sock_io_mode_p = &sock_io_moden[0];
+        sock_is_sending_p = &sock_is_sendingn[0];
+        sock_remained_size_p = &sock_remained_sizen[0][sn];
+        sock_pack_info_p = &sock_pack_infon[0][sn];
+        sock_remained_byte_p = &sock_remained_byten[0][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR2)
+    {
+        sock_any_port_df_p = &sock_any_portn[1];
+        sock_any_port_p = &sock_any_portn[1];
+        sock_io_mode_p = &sock_io_moden[1];
+        sock_is_sending_p = &sock_is_sendingn[1];
+        sock_remained_size_p = &sock_remained_sizen[1][sn];
+        sock_pack_info_p = &sock_pack_infon[1][sn];
+        sock_remained_byte_p = &sock_remained_byten[1][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR3)
+    {
+        sock_any_port_df_p = &sock_any_portn[2];
+        sock_any_port_p = &sock_any_portn[2];
+        sock_io_mode_p = &sock_io_moden[2];
+        sock_is_sending_p = &sock_is_sendingn[2];
+        sock_remained_size_p = &sock_remained_sizen[2][sn];
+        sock_pack_info_p = &sock_pack_infon[2][sn];
+        sock_remained_byte_p = &sock_remained_byten[2][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR4)
+    {
+        sock_any_port_df_p = &sock_any_portn[3];
+        sock_any_port_p = &sock_any_portn[3];
+        sock_io_mode_p = &sock_io_moden[3];
+        sock_is_sending_p = &sock_is_sendingn[3];
+        sock_remained_size_p = &sock_remained_sizen[3][sn];
+        sock_pack_info_p = &sock_pack_infon[3][sn];
+        sock_remained_byte_p = &sock_remained_byten[3][sn];
+    }
+    
    CHECK_SOCKNUM();
    CHECK_SOCKMODE(ChipAddr, Sn_MR_TCP);
 	setSn_CR(ChipAddr, sn,Sn_CR_DISCON);
 	/* wait to process the command... */
 	while(getSn_CR(ChipAddr, sn));
-	sock_is_sending &= ~(1<<sn);
-   if(sock_io_mode & (1<<sn)) return SOCK_BUSY;
+	*sock_is_sending_p &= ~(1<<sn);
+   if(*sock_io_mode_p & (1<<sn)) return SOCK_BUSY;
 	while(getSn_SR(ChipAddr, sn) != SOCK_CLOSED)
 	{
 	   if(getSn_IR(ChipAddr, sn) & Sn_IR_TIMEOUT)
@@ -316,6 +520,55 @@ int8_t disconnect(uint32_t ChipAddr, uint8_t sn)
 
 int32_t send(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
 {
+    uint16_t* sock_any_port_df_p;
+    uint16_t* sock_any_port_p;
+    uint16_t* sock_io_mode_p;
+    uint16_t* sock_is_sending_p;
+    uint16_t* sock_remained_size_p;
+    uint8_t* sock_pack_info_p;
+    uint8_t* sock_remained_byte_p;
+
+    if(ChipAddr == W5300_BANK_ADDR1)
+    {
+        sock_any_port_df_p = &sock_any_portn[0];
+        sock_any_port_p = &sock_any_portn[0];
+        sock_io_mode_p = &sock_io_moden[0];
+        sock_is_sending_p = &sock_is_sendingn[0];
+        sock_remained_size_p = &sock_remained_sizen[0][sn];
+        sock_pack_info_p = &sock_pack_infon[0][sn];
+        sock_remained_byte_p = &sock_remained_byten[0][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR2)
+    {
+        sock_any_port_df_p = &sock_any_portn[1];
+        sock_any_port_p = &sock_any_portn[1];
+        sock_io_mode_p = &sock_io_moden[1];
+        sock_is_sending_p = &sock_is_sendingn[1];
+        sock_remained_size_p = &sock_remained_sizen[1][sn];
+        sock_pack_info_p = &sock_pack_infon[1][sn];
+        sock_remained_byte_p = &sock_remained_byten[1][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR3)
+    {
+        sock_any_port_df_p = &sock_any_portn[2];
+        sock_any_port_p = &sock_any_portn[2];
+        sock_io_mode_p = &sock_io_moden[2];
+        sock_is_sending_p = &sock_is_sendingn[2];
+        sock_remained_size_p = &sock_remained_sizen[2][sn];
+        sock_pack_info_p = &sock_pack_infon[2][sn];
+        sock_remained_byte_p = &sock_remained_byten[2][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR4)
+    {
+        sock_any_port_df_p = &sock_any_portn[3];
+        sock_any_port_p = &sock_any_portn[3];
+        sock_io_mode_p = &sock_io_moden[3];
+        sock_is_sending_p = &sock_is_sendingn[3];
+        sock_remained_size_p = &sock_remained_sizen[3][sn];
+        sock_pack_info_p = &sock_pack_infon[3][sn];
+        sock_remained_byte_p = &sock_remained_byten[3][sn];
+    }
+    
    uint8_t tmp=0;
    uint16_t freesize=0;
    
@@ -324,7 +577,7 @@ int32_t send(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
    CHECK_SOCKDATA();
    tmp = getSn_SR(ChipAddr, sn);
    if(tmp != SOCK_ESTABLISHED && tmp != SOCK_CLOSE_WAIT) return SOCKERR_SOCKSTATUS;
-   if( sock_is_sending & (1<<sn) )
+   if( *sock_is_sending_p & (1<<sn) )
    {
       tmp = getSn_IR(ChipAddr, sn);
       if(tmp & Sn_IR_SENDOK)
@@ -340,7 +593,7 @@ int32_t send(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
                return SOCK_BUSY;
             }
          #endif
-         sock_is_sending &= ~(1<<sn);         
+         *sock_is_sending_p &= ~(1<<sn);         
       }
       else if(tmp & Sn_IR_TIMEOUT)
       {
@@ -360,7 +613,7 @@ int32_t send(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
          close(ChipAddr, sn);
          return SOCKERR_SOCKSTATUS;
       }
-      if( (sock_io_mode & (1<<sn)) && (len > freesize) ) return SOCK_BUSY;
+      if( (*sock_io_mode_p & (1<<sn)) && (len > freesize) ) return SOCK_BUSY;
       if(len <= freesize) break;
    }
    wiz_send_data(ChipAddr, sn, buf, len);
@@ -375,7 +628,7 @@ int32_t send(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
    setSn_CR(ChipAddr, sn,Sn_CR_SEND);
    /* wait to process the command... */
    while(getSn_CR(ChipAddr, sn));
-   sock_is_sending |= (1 << sn);
+   *sock_is_sending_p |= (1 << sn);
    //M20150409 : Explicit Type Casting
    //return len;
    return (int32_t)len;
@@ -384,6 +637,55 @@ int32_t send(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
 
 int32_t recv(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
 {
+    uint16_t* sock_any_port_df_p;
+    uint16_t* sock_any_port_p;
+    uint16_t* sock_io_mode_p;
+    uint16_t* sock_is_sending_p;
+    uint16_t* sock_remained_size_p;
+    uint8_t* sock_pack_info_p;
+    uint8_t* sock_remained_byte_p;
+
+    if(ChipAddr == W5300_BANK_ADDR1)
+    {
+        sock_any_port_df_p = &sock_any_portn[0];
+        sock_any_port_p = &sock_any_portn[0];
+        sock_io_mode_p = &sock_io_moden[0];
+        sock_is_sending_p = &sock_is_sendingn[0];
+        sock_remained_size_p = &sock_remained_sizen[0][sn];
+        sock_pack_info_p = &sock_pack_infon[0][sn];
+        sock_remained_byte_p = &sock_remained_byten[0][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR2)
+    {
+        sock_any_port_df_p = &sock_any_portn[1];
+        sock_any_port_p = &sock_any_portn[1];
+        sock_io_mode_p = &sock_io_moden[1];
+        sock_is_sending_p = &sock_is_sendingn[1];
+        sock_remained_size_p = &sock_remained_sizen[1][sn];
+        sock_pack_info_p = &sock_pack_infon[1][sn];
+        sock_remained_byte_p = &sock_remained_byten[1][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR3)
+    {
+        sock_any_port_df_p = &sock_any_portn[2];
+        sock_any_port_p = &sock_any_portn[2];
+        sock_io_mode_p = &sock_io_moden[2];
+        sock_is_sending_p = &sock_is_sendingn[2];
+        sock_remained_size_p = &sock_remained_sizen[2][sn];
+        sock_pack_info_p = &sock_pack_infon[2][sn];
+        sock_remained_byte_p = &sock_remained_byten[2][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR4)
+    {
+        sock_any_port_df_p = &sock_any_portn[3];
+        sock_any_port_p = &sock_any_portn[3];
+        sock_io_mode_p = &sock_io_moden[3];
+        sock_is_sending_p = &sock_is_sendingn[3];
+        sock_remained_size_p = &sock_remained_sizen[3][sn];
+        sock_pack_info_p = &sock_pack_infon[3][sn];
+        sock_remained_byte_p = &sock_remained_byten[3][sn];
+    }
+    
    uint8_t  tmp = 0;
    uint16_t recvsize = 0;
 //A20150601 : For integarating with W5300
@@ -402,7 +704,7 @@ int32_t recv(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
 //A20150601 : For Integrating with W5300
 #if _WIZCHIP_ == 5300
    //sock_pack_info[sn] = PACK_COMPLETED;    // for clear      
-   if(sock_remained_size[sn] == 0)
+   if(*sock_remained_size_p == 0)
    {
 #endif
 //
@@ -427,7 +729,7 @@ int32_t recv(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
                return SOCKERR_SOCKSTATUS;
             }
          }
-         if((sock_io_mode & (1<<sn)) && (recvsize == 0)) return SOCK_BUSY;
+         if((*sock_io_mode_p & (1<<sn)) && (recvsize == 0)) return SOCK_BUSY;
          if(recvsize != 0) break;
       };
 #if _WIZCHIP_ == 5300
@@ -436,7 +738,7 @@ int32_t recv(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
 
 //A20150601 : For integrating with W5300
 #if _WIZCHIP_ == 5300
-   if((sock_remained_size[sn] == 0) || (getSn_MR(ChipAddr, sn) & Sn_MR_ALIGN))
+   if((*sock_remained_size_p == 0) || (getSn_MR(ChipAddr, sn) & Sn_MR_ALIGN))
    {
       mr = getMR(ChipAddr);
       if((getSn_MR(ChipAddr, sn) & Sn_MR_ALIGN)==0)
@@ -446,19 +748,19 @@ int32_t recv(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
             recvsize = (((uint16_t)head[1]) << 8) | ((uint16_t)head[0]);
          else
             recvsize = (((uint16_t)head[0]) << 8) | ((uint16_t)head[1]);
-         sock_pack_info[sn] = PACK_FIRST;
+         *sock_pack_info_p = PACK_FIRST;
       }
-      sock_remained_size[sn] = recvsize;
+      *sock_remained_size_p = recvsize;
    }
-   if(len > sock_remained_size[sn]) len = sock_remained_size[sn];
+   if(len > *sock_remained_size_p) len = *sock_remained_size_p;
    recvsize = len;   
-   if(sock_pack_info[sn] & PACK_FIFOBYTE)
+   if(*sock_pack_info_p & PACK_FIFOBYTE)
    {
-      *buf = sock_remained_byte[sn];
+      *buf = *sock_remained_byte_p;
       buf++;
-      sock_pack_info[sn] &= ~(PACK_FIFOBYTE);
+      *sock_pack_info_p &= ~(PACK_FIFOBYTE);
       recvsize -= 1;
-      sock_remained_size[sn] -= 1;
+      *sock_remained_size_p -= 1;
    }
    if(recvsize != 0)
    {
@@ -466,14 +768,14 @@ int32_t recv(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
       setSn_CR(ChipAddr, sn,Sn_CR_RECV);
       while(getSn_CR(ChipAddr, sn));
    }
-   sock_remained_size[sn] -= recvsize;
-   if(sock_remained_size[sn] != 0)
+   *sock_remained_size_p -= recvsize;
+   if(*sock_remained_size_p != 0)
    {
-      sock_pack_info[sn] |= PACK_REMAINED;
-      if(recvsize & 0x1) sock_pack_info[sn] |= PACK_FIFOBYTE;
+      *sock_pack_info_p |= PACK_REMAINED;
+      if(recvsize & 0x1) *sock_pack_info_p |= PACK_FIFOBYTE;
    }
-   else sock_pack_info[sn] = PACK_COMPLETED;
-   if(getSn_MR(ChipAddr, sn) & Sn_MR_ALIGN) sock_remained_size[sn] = 0;
+   else *sock_pack_info_p = PACK_COMPLETED;
+   if(getSn_MR(ChipAddr, sn) & Sn_MR_ALIGN) *sock_remained_size_p = 0;
    //len = recvsize;
 #else   
    if(recvsize < len) len = recvsize;   
@@ -489,6 +791,55 @@ int32_t recv(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
 
 int32_t sendto(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16_t port)
 {
+    uint16_t* sock_any_port_df_p;
+    uint16_t* sock_any_port_p;
+    uint16_t* sock_io_mode_p;
+    uint16_t* sock_is_sending_p;
+    uint16_t* sock_remained_size_p;
+    uint8_t* sock_pack_info_p;
+    uint8_t* sock_remained_byte_p;
+
+    if(ChipAddr == W5300_BANK_ADDR1)
+    {
+        sock_any_port_df_p = &sock_any_portn[0];
+        sock_any_port_p = &sock_any_portn[0];
+        sock_io_mode_p = &sock_io_moden[0];
+        sock_is_sending_p = &sock_is_sendingn[0];
+        sock_remained_size_p = &sock_remained_sizen[0][sn];
+        sock_pack_info_p = &sock_pack_infon[0][sn];
+        sock_remained_byte_p = &sock_remained_byten[0][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR2)
+    {
+        sock_any_port_df_p = &sock_any_portn[1];
+        sock_any_port_p = &sock_any_portn[1];
+        sock_io_mode_p = &sock_io_moden[1];
+        sock_is_sending_p = &sock_is_sendingn[1];
+        sock_remained_size_p = &sock_remained_sizen[1][sn];
+        sock_pack_info_p = &sock_pack_infon[1][sn];
+        sock_remained_byte_p = &sock_remained_byten[1][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR3)
+    {
+        sock_any_port_df_p = &sock_any_portn[2];
+        sock_any_port_p = &sock_any_portn[2];
+        sock_io_mode_p = &sock_io_moden[2];
+        sock_is_sending_p = &sock_is_sendingn[2];
+        sock_remained_size_p = &sock_remained_sizen[2][sn];
+        sock_pack_info_p = &sock_pack_infon[2][sn];
+        sock_remained_byte_p = &sock_remained_byten[2][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR4)
+    {
+        sock_any_port_df_p = &sock_any_portn[3];
+        sock_any_port_p = &sock_any_portn[3];
+        sock_io_mode_p = &sock_io_moden[3];
+        sock_is_sending_p = &sock_is_sendingn[3];
+        sock_remained_size_p = &sock_remained_sizen[3][sn];
+        sock_pack_info_p = &sock_pack_infon[3][sn];
+        sock_remained_byte_p = &sock_remained_byten[3][sn];
+    }
+    
    uint8_t tmp = 0;
    uint16_t freesize = 0;
    uint32_t taddr;
@@ -535,7 +886,7 @@ int32_t sendto(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uint8
    {
       freesize = getSn_TX_FSR(ChipAddr, sn);
       if(getSn_SR(ChipAddr, sn) == SOCK_CLOSED) return SOCKERR_SOCKCLOSED;
-      if( (sock_io_mode & (1<<sn)) && (len > freesize) ) return SOCK_BUSY;
+      if( (*sock_io_mode_p & (1<<sn)) && (len > freesize) ) return SOCK_BUSY;
       if(len <= freesize) break;
    };
 	wiz_send_data(ChipAddr, sn, buf, len);
@@ -593,6 +944,55 @@ int32_t sendto(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uint8
 
 int32_t recvfrom(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uint8_t * addr, uint16_t *port)
 {
+    uint16_t* sock_any_port_df_p;
+    uint16_t* sock_any_port_p;
+    uint16_t* sock_io_mode_p;
+    uint16_t* sock_is_sending_p;
+    uint16_t* sock_remained_size_p;
+    uint8_t* sock_pack_info_p;
+    uint8_t* sock_remained_byte_p;
+
+    if(ChipAddr == W5300_BANK_ADDR1)
+    {
+        sock_any_port_df_p = &sock_any_portn[0];
+        sock_any_port_p = &sock_any_portn[0];
+        sock_io_mode_p = &sock_io_moden[0];
+        sock_is_sending_p = &sock_is_sendingn[0];
+        sock_remained_size_p = &sock_remained_sizen[0][sn];
+        sock_pack_info_p = &sock_pack_infon[0][sn];
+        sock_remained_byte_p = &sock_remained_byten[0][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR2)
+    {
+        sock_any_port_df_p = &sock_any_portn[1];
+        sock_any_port_p = &sock_any_portn[1];
+        sock_io_mode_p = &sock_io_moden[1];
+        sock_is_sending_p = &sock_is_sendingn[1];
+        sock_remained_size_p = &sock_remained_sizen[1][sn];
+        sock_pack_info_p = &sock_pack_infon[1][sn];
+        sock_remained_byte_p = &sock_remained_byten[1][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR3)
+    {
+        sock_any_port_df_p = &sock_any_portn[2];
+        sock_any_port_p = &sock_any_portn[2];
+        sock_io_mode_p = &sock_io_moden[2];
+        sock_is_sending_p = &sock_is_sendingn[2];
+        sock_remained_size_p = &sock_remained_sizen[2][sn];
+        sock_pack_info_p = &sock_pack_infon[2][sn];
+        sock_remained_byte_p = &sock_remained_byten[2][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR4)
+    {
+        sock_any_port_df_p = &sock_any_portn[3];
+        sock_any_port_p = &sock_any_portn[3];
+        sock_io_mode_p = &sock_io_moden[3];
+        sock_is_sending_p = &sock_is_sendingn[3];
+        sock_remained_size_p = &sock_remained_sizen[3][sn];
+        sock_pack_info_p = &sock_pack_infon[3][sn];
+        sock_remained_byte_p = &sock_remained_byten[3][sn];
+    }
+    
 //M20150601 : For W5300   
 #if _WIZCHIP_ == 5300
    uint16_t mr;
@@ -625,13 +1025,13 @@ int32_t recvfrom(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uin
          return SOCKERR_SOCKMODE;
    }
    CHECK_SOCKDATA();
-   if(sock_remained_size[sn] == 0)
+   if(*sock_remained_size_p == 0)
    {
       while(1)
       {
          pack_len = getSn_RX_RSR(ChipAddr, sn);
          if(getSn_SR(ChipAddr, sn) == SOCK_CLOSED) return SOCKERR_SOCKCLOSED;
-         if( (sock_io_mode & (1<<sn)) && (pack_len == 0) ) return SOCK_BUSY;
+         if( (*sock_io_mode_p & (1<<sn)) && (pack_len == 0) ) return SOCK_BUSY;
          if(pack_len != 0) break;
       };
    }
@@ -640,7 +1040,7 @@ int32_t recvfrom(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uin
 	switch (mr & 0x07)
 	{
 	   case Sn_MR_UDP :
-	      if(sock_remained_size[sn] == 0)
+	      if(*sock_remained_size_p == 0)
 	      {
    			wiz_recv_data(ChipAddr, sn, head, 8);
    			setSn_CR(ChipAddr, sn,Sn_CR_RECV);
@@ -656,8 +1056,8 @@ int32_t recvfrom(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uin
    		      addr[3] = head[2];
    		      *port = head[5];
    		      *port = (*port << 8) + head[4];
-      			sock_remained_size[sn] = head[7];
-      			sock_remained_size[sn] = (sock_remained_size[sn] << 8) + head[6];
+      			*sock_remained_size_p = head[7];
+      			*sock_remained_size_p = (*sock_remained_size_p << 8) + head[6];
    		   }
             else
             {
@@ -668,24 +1068,24 @@ int32_t recvfrom(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uin
       			addr[3] = head[3];
       			*port = head[4];
       			*port = (*port << 8) + head[5];
-      			sock_remained_size[sn] = head[6];
-      			sock_remained_size[sn] = (sock_remained_size[sn] << 8) + head[7];
+      			*sock_remained_size_p = head[6];
+      			*sock_remained_size_p = (*sock_remained_size_p << 8) + head[7];
          #if _WIZCHIP_ == 5300
             }
          #endif
-   			sock_pack_info[sn] = PACK_FIRST;
+   			*sock_pack_info_p = PACK_FIRST;
    	   }
-			if(len < sock_remained_size[sn]) pack_len = len;
-			else pack_len = sock_remained_size[sn];
+			if(len < *sock_remained_size_p) pack_len = len;
+			else pack_len = *sock_remained_size_p;
 			//A20150601 : For W5300
 			len = pack_len;
 			#if _WIZCHIP_ == 5300
-			   if(sock_pack_info[sn] & PACK_FIFOBYTE)
+			   if(*sock_pack_info_p & PACK_FIFOBYTE)
 			   {
-			      *buf++ = sock_remained_byte[sn];
+			      *buf++ = *sock_remained_byte_p;
 			      pack_len -= 1;
-			      sock_remained_size[sn] -= 1;
-			      sock_pack_info[sn] &= ~PACK_FIFOBYTE;
+			      *sock_remained_size_p -= 1;
+			      *sock_pack_info_p &= ~PACK_FIFOBYTE;
 			   }
 			#endif
 			//
@@ -694,34 +1094,34 @@ int32_t recvfrom(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uin
    		wiz_recv_data(ChipAddr, sn, buf, pack_len); // data copy.
 			break;
 	   case Sn_MR_MACRAW :
-	      if(sock_remained_size[sn] == 0)
+	      if(*sock_remained_size_p == 0)
 	      {
    			wiz_recv_data(ChipAddr, sn, head, 2);
    			setSn_CR(ChipAddr, sn,Sn_CR_RECV);
    			while(getSn_CR(ChipAddr, sn));
    			// read peer's IP address, port number & packet length
-    			sock_remained_size[sn] = head[0];
-   			sock_remained_size[sn] = (sock_remained_size[sn] <<8) + head[1] -2;
+    			*sock_remained_size_p = head[0];
+   			*sock_remained_size_p = (*sock_remained_size_p <<8) + head[1] -2;
    			#if _WIZCHIP_ == W5300
-   			if(sock_remained_size[sn] & 0x01)
-   				sock_remained_size[sn] = sock_remained_size[sn] + 1 - 4;
+   			if(*sock_remained_size_p & 0x01)
+   				*sock_remained_size_p = *sock_remained_size_p + 1 - 4;
    			else
-   				sock_remained_size[sn] -= 4;
+   				*sock_remained_size_p -= 4;
 			#endif
-   			if(sock_remained_size[sn] > 1514) 
+   			if(*sock_remained_size_p > 1514) 
    			{
    			   close(ChipAddr, sn);
    			   return SOCKFATAL_PACKLEN;
    			}
-   			sock_pack_info[sn] = PACK_FIRST;
+   			*sock_pack_info_p = PACK_FIRST;
    	   }
-			if(len < sock_remained_size[sn]) pack_len = len;
-			else pack_len = sock_remained_size[sn];
+			if(len < *sock_remained_size_p) pack_len = len;
+			else pack_len = *sock_remained_size_p;
 			wiz_recv_data(ChipAddr, sn,buf,pack_len);
 		   break;
    //#if ( _WIZCHIP_ < 5200 )
 		case Sn_MR_IPRAW:
-		   if(sock_remained_size[sn] == 0)
+		   if(*sock_remained_size_p == 0)
 		   {
    			wiz_recv_data(ChipAddr, sn, head, 6);
    			setSn_CR(ChipAddr, sn,Sn_CR_RECV);
@@ -730,39 +1130,39 @@ int32_t recvfrom(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uin
    			addr[1] = head[1];
    			addr[2] = head[2];
    			addr[3] = head[3];
-   			sock_remained_size[sn] = head[4];
+   			*sock_remained_size_p = head[4];
    			//M20150401 : For Typing Error
    			//sock_remaiend_size[sn] = (sock_remained_size[sn] << 8) + head[5];
-   			sock_remained_size[sn] = (sock_remained_size[sn] << 8) + head[5];
-   			sock_pack_info[sn] = PACK_FIRST;
+   			*sock_remained_size_p = (*sock_remained_size_p << 8) + head[5];
+   			*sock_pack_info_p = PACK_FIRST;
          }
 			//
 			// Need to packet length check
 			//
-			if(len < sock_remained_size[sn]) pack_len = len;
-			else pack_len = sock_remained_size[sn];
+			if(len < *sock_remained_size_p) pack_len = len;
+			else pack_len = *sock_remained_size_p;
    		wiz_recv_data(ChipAddr, sn, buf, pack_len); // data copy.
 			break;
    //#endif
       default:
          wiz_recv_ignore(ChipAddr, sn, pack_len); // data copy.
-         sock_remained_size[sn] = pack_len;
+         *sock_remained_size_p = pack_len;
          break;
    }
 	setSn_CR(ChipAddr, sn,Sn_CR_RECV);
 	/* wait to process the command... */
 	while(getSn_CR(ChipAddr, sn)) ;
-	sock_remained_size[sn] -= pack_len;
+	*sock_remained_size_p -= pack_len;
 	//M20150601 : 
 	//if(sock_remained_size[sn] != 0) sock_pack_info[sn] |= 0x01;
-	if(sock_remained_size[sn] != 0)
+	if(*sock_remained_size_p != 0)
 	{
-	   sock_pack_info[sn] |= PACK_REMAINED;
+	   *sock_pack_info_p |= PACK_REMAINED;
    #if _WIZCHIP_ == 5300	   
-	   if(pack_len & 0x01) sock_pack_info[sn] |= PACK_FIFOBYTE;
+	   if(pack_len & 0x01) *sock_pack_info_p |= PACK_FIFOBYTE;
    #endif	      
 	}
-	else sock_pack_info[sn] = PACK_COMPLETED;
+	else *sock_pack_info_p = PACK_COMPLETED;
 #if _WIZCHIP_ == 5300	   
    pack_len = len;
 #endif
@@ -775,20 +1175,69 @@ int32_t recvfrom(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uin
 
 int8_t  ctlsocket(uint32_t ChipAddr, uint8_t sn, ctlsock_type cstype, void* arg)
 {
+    uint16_t* sock_any_port_df_p;
+    uint16_t* sock_any_port_p;
+    uint16_t* sock_io_mode_p;
+    uint16_t* sock_is_sending_p;
+    uint16_t* sock_remained_size_p;
+    uint8_t* sock_pack_info_p;
+    uint8_t* sock_remained_byte_p;
+
+    if(ChipAddr == W5300_BANK_ADDR1)
+    {
+        sock_any_port_df_p = &sock_any_portn[0];
+        sock_any_port_p = &sock_any_portn[0];
+        sock_io_mode_p = &sock_io_moden[0];
+        sock_is_sending_p = &sock_is_sendingn[0];
+        sock_remained_size_p = &sock_remained_sizen[0][sn];
+        sock_pack_info_p = &sock_pack_infon[0][sn];
+        sock_remained_byte_p = &sock_remained_byten[0][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR2)
+    {
+        sock_any_port_df_p = &sock_any_portn[1];
+        sock_any_port_p = &sock_any_portn[1];
+        sock_io_mode_p = &sock_io_moden[1];
+        sock_is_sending_p = &sock_is_sendingn[1];
+        sock_remained_size_p = &sock_remained_sizen[1][sn];
+        sock_pack_info_p = &sock_pack_infon[1][sn];
+        sock_remained_byte_p = &sock_remained_byten[1][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR3)
+    {
+        sock_any_port_df_p = &sock_any_portn[2];
+        sock_any_port_p = &sock_any_portn[2];
+        sock_io_mode_p = &sock_io_moden[2];
+        sock_is_sending_p = &sock_is_sendingn[2];
+        sock_remained_size_p = &sock_remained_sizen[2][sn];
+        sock_pack_info_p = &sock_pack_infon[2][sn];
+        sock_remained_byte_p = &sock_remained_byten[2][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR4)
+    {
+        sock_any_port_df_p = &sock_any_portn[3];
+        sock_any_port_p = &sock_any_portn[3];
+        sock_io_mode_p = &sock_io_moden[3];
+        sock_is_sending_p = &sock_is_sendingn[3];
+        sock_remained_size_p = &sock_remained_sizen[3][sn];
+        sock_pack_info_p = &sock_pack_infon[3][sn];
+        sock_remained_byte_p = &sock_remained_byten[3][sn];
+    }
+    
    uint8_t tmp = 0;
    CHECK_SOCKNUM();
    switch(cstype)
    {
       case CS_SET_IOMODE:
          tmp = *((uint8_t*)arg);
-         if(tmp == SOCK_IO_NONBLOCK)  sock_io_mode |= (1<<sn);
-         else if(tmp == SOCK_IO_BLOCK) sock_io_mode &= ~(1<<sn);
+         if(tmp == SOCK_IO_NONBLOCK)  *sock_io_mode_p |= (1<<sn);
+         else if(tmp == SOCK_IO_BLOCK) *sock_io_mode_p &= ~(1<<sn);
          else return SOCKERR_ARG;
          break;
       case CS_GET_IOMODE:   
          //M20140501 : implict type casting -> explict type casting
          //*((uint8_t*)arg) = (sock_io_mode >> sn) & 0x0001;
-         *((uint8_t*)arg) = (uint8_t)((sock_io_mode >> sn) & 0x0001);
+         *((uint8_t*)arg) = (uint8_t)((*sock_io_mode_p >> sn) & 0x0001);
          //
          break;
       case CS_GET_MAXTXBUF:
@@ -874,6 +1323,55 @@ int8_t  setsockopt(uint32_t ChipAddr, uint8_t sn, sockopt_type sotype, void* arg
 
 int8_t  getsockopt(uint32_t ChipAddr, uint8_t sn, sockopt_type sotype, void* arg)
 {
+    uint16_t* sock_any_port_df_p;
+    uint16_t* sock_any_port_p;
+    uint16_t* sock_io_mode_p;
+    uint16_t* sock_is_sending_p;
+    uint16_t* sock_remained_size_p;
+    uint8_t* sock_pack_info_p;
+    uint8_t* sock_remained_byte_p;
+
+    if(ChipAddr == W5300_BANK_ADDR1)
+    {
+        sock_any_port_df_p = &sock_any_portn[0];
+        sock_any_port_p = &sock_any_portn[0];
+        sock_io_mode_p = &sock_io_moden[0];
+        sock_is_sending_p = &sock_is_sendingn[0];
+        sock_remained_size_p = &sock_remained_sizen[0][sn];
+        sock_pack_info_p = &sock_pack_infon[0][sn];
+        sock_remained_byte_p = &sock_remained_byten[0][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR2)
+    {
+        sock_any_port_df_p = &sock_any_portn[1];
+        sock_any_port_p = &sock_any_portn[1];
+        sock_io_mode_p = &sock_io_moden[1];
+        sock_is_sending_p = &sock_is_sendingn[1];
+        sock_remained_size_p = &sock_remained_sizen[1][sn];
+        sock_pack_info_p = &sock_pack_infon[1][sn];
+        sock_remained_byte_p = &sock_remained_byten[1][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR3)
+    {
+        sock_any_port_df_p = &sock_any_portn[2];
+        sock_any_port_p = &sock_any_portn[2];
+        sock_io_mode_p = &sock_io_moden[2];
+        sock_is_sending_p = &sock_is_sendingn[2];
+        sock_remained_size_p = &sock_remained_sizen[2][sn];
+        sock_pack_info_p = &sock_pack_infon[2][sn];
+        sock_remained_byte_p = &sock_remained_byten[2][sn];
+    }
+    else if(ChipAddr == W5300_BANK_ADDR4)
+    {
+        sock_any_port_df_p = &sock_any_portn[3];
+        sock_any_port_p = &sock_any_portn[3];
+        sock_io_mode_p = &sock_io_moden[3];
+        sock_is_sending_p = &sock_is_sendingn[3];
+        sock_remained_size_p = &sock_remained_sizen[3][sn];
+        sock_pack_info_p = &sock_pack_infon[3][sn];
+        sock_remained_byte_p = &sock_remained_byten[3][sn];
+    }
+    
    CHECK_SOCKNUM();
    switch(sotype)
    {
@@ -914,7 +1412,7 @@ int8_t  getsockopt(uint32_t ChipAddr, uint8_t sn, sockopt_type sotype, void* arg
          if(getSn_MR(ChipAddr, sn) & Sn_MR_TCP)
             *(uint16_t*)arg = getSn_RX_RSR(ChipAddr, sn);
          else
-            *(uint16_t*)arg = sock_remained_size[sn];
+            *(uint16_t*)arg = *sock_remained_size_p;
          break;
       case SO_PACKINFO:
          //CHECK_SOCKMODE(Sn_MR_TCP);
@@ -922,7 +1420,7 @@ int8_t  getsockopt(uint32_t ChipAddr, uint8_t sn, sockopt_type sotype, void* arg
          if((getSn_MR(sn) == Sn_MR_TCP))
              return SOCKERR_SOCKMODE;
 #endif
-         *(uint8_t*)arg = sock_pack_info[sn];
+         *(uint8_t*)arg = *sock_pack_info_p;
          break;
       default:
          return SOCKERR_SOCKOPT;
