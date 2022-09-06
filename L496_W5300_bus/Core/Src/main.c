@@ -66,22 +66,21 @@ uint8_t wiznet_memsize[2][8] = {{8,8,8,8,8,8,8,8}, {8,8,8,8,8,8,8,8}};
 
 #define ETH_MAX_BUF_SIZE		2048
 
-uint8_t ethBuf0[ETH_MAX_BUF_SIZE];
-uint8_t ethBuf1[ETH_MAX_BUF_SIZE];
+uint8_t ethBuf[4][ETH_MAX_BUF_SIZE];
 
-wiz_NetInfo gWIZNETINFO = {
-		.mac = {0x00, 0x08, 0xdc, 0, 0, 0},
-		.ip = {192, 168, 15, 111},
+wiz_NetInfo gWIZNETINFO1 = {
+		.mac = {0x00, 0x08, 0xdc, 0, 0, 1},
+		.ip = {192, 168, 0, 111},
 		.sn = {255, 255, 255, 0},
-		.gw = {192, 168, 15, 1},
+		.gw = {192, 168, 0, 1},
 		.dns = {0, 0, 0, 0},
 		.dhcp = NETINFO_STATIC
 };
-wiz_NetInfo gWIZNETINFO1 = {
-		.mac = {0x00, 0x08, 0xdc, 0, 0, 1},
-		.ip = {192, 168, 15, 112},
+wiz_NetInfo gWIZNETINFO2 = {
+		.mac = {0x00, 0x08, 0xdc, 0, 0, 2},
+		.ip = {192, 168, 0, 112},
 		.sn = {255, 255, 255, 0},
-		.gw = {192, 168, 15, 1},
+		.gw = {192, 168, 0, 1},
 		.dns = {0, 0, 0, 0},
 		.dhcp = NETINFO_STATIC
 };
@@ -155,18 +154,18 @@ void W5300CsDisable(void)
 }
 void print_network_information(void)
 {
-    wizchip_getnetinfo(W5300_BANK_ADDR1, &gWIZNETINFO);
-    printf("Mac address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",gWIZNETINFO.mac[0],gWIZNETINFO.mac[1],gWIZNETINFO.mac[2],gWIZNETINFO.mac[3],gWIZNETINFO.mac[4],gWIZNETINFO.mac[5]);
-    printf("IP address : %d.%d.%d.%d\n\r",gWIZNETINFO.ip[0],gWIZNETINFO.ip[1],gWIZNETINFO.ip[2],gWIZNETINFO.ip[3]);
-    printf("SM Mask    : %d.%d.%d.%d\n\r",gWIZNETINFO.sn[0],gWIZNETINFO.sn[1],gWIZNETINFO.sn[2],gWIZNETINFO.sn[3]);
-    printf("Gate way   : %d.%d.%d.%d\n\r",gWIZNETINFO.gw[0],gWIZNETINFO.gw[1],gWIZNETINFO.gw[2],gWIZNETINFO.gw[3]);
-    printf("DNS Server : %d.%d.%d.%d\n\r",gWIZNETINFO.dns[0],gWIZNETINFO.dns[1],gWIZNETINFO.dns[2],gWIZNETINFO.dns[3]);
-    wizchip_getnetinfo(W5300_BANK_ADDR3, &gWIZNETINFO1);
-	printf("Mac address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",gWIZNETINFO1.mac[0],gWIZNETINFO1.mac[1],gWIZNETINFO1.mac[2],gWIZNETINFO1.mac[3],gWIZNETINFO1.mac[4],gWIZNETINFO1.mac[5]);
-	printf("IP address : %d.%d.%d.%d\n\r",gWIZNETINFO1.ip[0],gWIZNETINFO1.ip[1],gWIZNETINFO1.ip[2],gWIZNETINFO1.ip[3]);
-	printf("SM Mask    : %d.%d.%d.%d\n\r",gWIZNETINFO1.sn[0],gWIZNETINFO1.sn[1],gWIZNETINFO1.sn[2],gWIZNETINFO1.sn[3]);
-	printf("Gate way   : %d.%d.%d.%d\n\r",gWIZNETINFO1.gw[0],gWIZNETINFO1.gw[1],gWIZNETINFO1.gw[2],gWIZNETINFO1.gw[3]);
-	printf("DNS Server : %d.%d.%d.%d\n\r",gWIZNETINFO1.dns[0],gWIZNETINFO1.dns[1],gWIZNETINFO1.dns[2],gWIZNETINFO1.dns[3]);
+    wizchip_getnetinfo(W5300_BANK_ADDR1, &gWIZNETINFO1);
+    printf("Mac address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",gWIZNETINFO1.mac[0],gWIZNETINFO1.mac[1],gWIZNETINFO1.mac[2],gWIZNETINFO1.mac[3],gWIZNETINFO1.mac[4],gWIZNETINFO1.mac[5]);
+    printf("IP address : %d.%d.%d.%d\n\r",gWIZNETINFO1.ip[0],gWIZNETINFO1.ip[1],gWIZNETINFO1.ip[2],gWIZNETINFO1.ip[3]);
+    printf("SM Mask    : %d.%d.%d.%d\n\r",gWIZNETINFO1.sn[0],gWIZNETINFO1.sn[1],gWIZNETINFO1.sn[2],gWIZNETINFO1.sn[3]);
+    printf("Gate way   : %d.%d.%d.%d\n\r",gWIZNETINFO1.gw[0],gWIZNETINFO1.gw[1],gWIZNETINFO1.gw[2],gWIZNETINFO1.gw[3]);
+    printf("DNS Server : %d.%d.%d.%d\n\r",gWIZNETINFO1.dns[0],gWIZNETINFO1.dns[1],gWIZNETINFO1.dns[2],gWIZNETINFO1.dns[3]);
+    wizchip_getnetinfo(W5300_BANK_ADDR3, &gWIZNETINFO2);
+	printf("Mac address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",gWIZNETINFO2.mac[0],gWIZNETINFO2.mac[1],gWIZNETINFO2.mac[2],gWIZNETINFO2.mac[3],gWIZNETINFO2.mac[4],gWIZNETINFO2.mac[5]);
+	printf("IP address : %d.%d.%d.%d\n\r",gWIZNETINFO2.ip[0],gWIZNETINFO2.ip[1],gWIZNETINFO2.ip[2],gWIZNETINFO2.ip[3]);
+	printf("SM Mask    : %d.%d.%d.%d\n\r",gWIZNETINFO2.sn[0],gWIZNETINFO2.sn[1],gWIZNETINFO2.sn[2],gWIZNETINFO2.sn[3]);
+	printf("Gate way   : %d.%d.%d.%d\n\r",gWIZNETINFO2.gw[0],gWIZNETINFO2.gw[1],gWIZNETINFO2.gw[2],gWIZNETINFO2.gw[3]);
+	printf("DNS Server : %d.%d.%d.%d\n\r",gWIZNETINFO2.dns[0],gWIZNETINFO2.dns[1],gWIZNETINFO2.dns[2],gWIZNETINFO2.dns[3]);
 }
 
 void _InitW5300(void)
@@ -193,9 +192,9 @@ void _InitW5300(void)
 	}
 	HAL_Delay(100);
 
-	ctlnetwork(W5300_BANK_ADDR1, CN_SET_NETINFO, (void *)&gWIZNETINFO);
+	ctlnetwork(W5300_BANK_ADDR1, CN_SET_NETINFO, (void *)&gWIZNETINFO1);
 	HAL_Delay(100);
-	ctlnetwork(W5300_BANK_ADDR3, CN_SET_NETINFO, (void *)&gWIZNETINFO1);
+	ctlnetwork(W5300_BANK_ADDR3, CN_SET_NETINFO, (void *)&gWIZNETINFO2);
 	HAL_Delay(100);
 	print_network_information();
 }
@@ -245,10 +244,25 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint8_t host_ip[4] = {192,168,0,69};
   while (1)
   {
-	 loopback_tcps(W5300_BANK_ADDR1, 0, ethBuf0, 3000);
-	 loopback_tcps(W5300_BANK_ADDR3, 0, ethBuf1, 3001);
+  #if 1
+  // tcp
+  #if 0
+  // server
+        loopback_tcps(W5300_BANK_ADDR1, 0, ethBuf[0], 3000);
+        loopback_tcps(W5300_BANK_ADDR3, 0, ethBuf[1], 3001);
+  #else  
+  // client
+        loopback_tcpc(W5300_BANK_ADDR1, 0, ethBuf[0], host_ip, 3030);
+        loopback_tcpc(W5300_BANK_ADDR3, 0, ethBuf[1], host_ip, 3030);
+  #endif
+  #else
+  // udp
+        loopback_udps(W5300_BANK_ADDR1, 0, ethBuf[0], 3000);
+        loopback_udps(W5300_BANK_ADDR3, 0, ethBuf[1], 3001);
+  #endif
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
