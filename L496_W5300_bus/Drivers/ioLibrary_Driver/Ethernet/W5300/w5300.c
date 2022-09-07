@@ -189,7 +189,7 @@ uint32_t getSn_RX_RSR(uint32_t ChipAddr, uint8_t sn)
     }
     else
     {
-        Chip_num = (ChipAddr-0x60000000)/0x4000000;
+        Chip_num = (ChipAddr-W5300_BANK_ADDR1)/(W5300_BANK_ADDR2-W5300_BANK_ADDR1);
     }
     sock_pack_info_p = &sock_pack_infon[Chip_num][sn];
     
@@ -225,7 +225,7 @@ void wiz_recv_data(uint32_t ChipAddr, uint8_t sn, uint8_t *wizdata, uint32_t len
     }
     else
     {
-        Chip_num = (ChipAddr-0x60000000)/0x4000000;
+        Chip_num = (ChipAddr-W5300_BANK_ADDR1)/(W5300_BANK_ADDR2-W5300_BANK_ADDR1);
     }
     sock_remained_byte_p = &sock_remained_byten[Chip_num][sn];
     

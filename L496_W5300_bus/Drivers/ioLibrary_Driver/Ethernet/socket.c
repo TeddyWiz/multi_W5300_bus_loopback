@@ -121,7 +121,7 @@ int8_t socket(uint32_t ChipAddr, uint8_t sn, uint8_t protocol, uint16_t port, ui
     }
     else
     {
-        Chip_num = (ChipAddr-0x60000000)/0x4000000;
+        Chip_num = (ChipAddr-W5300_BANK_ADDR1)/(W5300_BANK_ADDR2-W5300_BANK_ADDR1);
     }
     sock_any_port_df_p = &sock_any_portn[Chip_num];
     sock_any_port_p = &sock_any_portn[Chip_num];
@@ -234,7 +234,7 @@ int8_t close(uint32_t ChipAddr, uint8_t sn)
     }
     else
     {
-        Chip_num = (ChipAddr-0x60000000)/0x4000000;
+        Chip_num = (ChipAddr-W5300_BANK_ADDR1)/(W5300_BANK_ADDR2-W5300_BANK_ADDR1);
     }
     sock_io_mode_p = &sock_io_moden[Chip_num];
     sock_is_sending_p = &sock_is_sendingn[Chip_num];
@@ -308,7 +308,7 @@ int8_t connect(uint32_t ChipAddr, uint8_t sn, uint8_t * addr, uint16_t port)
     }
     else
     {
-        Chip_num = (ChipAddr-0x60000000)/0x4000000;
+        Chip_num = (ChipAddr-W5300_BANK_ADDR1)/(W5300_BANK_ADDR2-W5300_BANK_ADDR1);
     }
     sock_io_mode_p = &sock_io_moden[Chip_num];
     
@@ -361,7 +361,7 @@ int8_t disconnect(uint32_t ChipAddr, uint8_t sn)
     }
     else
     {
-        Chip_num = (ChipAddr-0x60000000)/0x4000000;
+        Chip_num = (ChipAddr-W5300_BANK_ADDR1)/(W5300_BANK_ADDR2-W5300_BANK_ADDR1);
     }
     sock_io_mode_p = &sock_io_moden[Chip_num];
     sock_is_sending_p = &sock_is_sendingn[Chip_num];
@@ -395,7 +395,7 @@ int32_t send(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
     }
     else
     {
-        Chip_num = (ChipAddr-0x60000000)/0x4000000;
+        Chip_num = (ChipAddr-W5300_BANK_ADDR1)/(W5300_BANK_ADDR2-W5300_BANK_ADDR1);
     }
     sock_io_mode_p = &sock_io_moden[Chip_num];
     sock_is_sending_p = &sock_is_sendingn[Chip_num];
@@ -479,7 +479,7 @@ int32_t recv(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len)
     }
     else
     {
-        Chip_num = (ChipAddr-0x60000000)/0x4000000;
+        Chip_num = (ChipAddr-W5300_BANK_ADDR1)/(W5300_BANK_ADDR2-W5300_BANK_ADDR1);
     }
     sock_io_mode_p = &sock_io_moden[Chip_num];
     sock_remained_size_p = &sock_remained_sizen[Chip_num][sn];
@@ -599,7 +599,7 @@ int32_t sendto(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uint8
     }
     else
     {
-        Chip_num = (ChipAddr-0x60000000)/0x4000000;
+        Chip_num = (ChipAddr-W5300_BANK_ADDR1)/(W5300_BANK_ADDR2-W5300_BANK_ADDR1);
     }
     sock_io_mode_p = &sock_io_moden[Chip_num];
     
@@ -718,7 +718,7 @@ int32_t recvfrom(uint32_t ChipAddr, uint8_t sn, uint8_t * buf, uint16_t len, uin
     }
     else
     {
-        Chip_num = (ChipAddr-0x60000000)/0x4000000;
+        Chip_num = (ChipAddr-W5300_BANK_ADDR1)/(W5300_BANK_ADDR2-W5300_BANK_ADDR1);
     }
     sock_io_mode_p = &sock_io_moden[Chip_num];
     sock_remained_size_p = &sock_remained_sizen[Chip_num][sn];
@@ -915,7 +915,7 @@ int8_t  ctlsocket(uint32_t ChipAddr, uint8_t sn, ctlsock_type cstype, void* arg)
     }
     else
     {
-        Chip_num = (ChipAddr-0x60000000)/0x4000000;
+        Chip_num = (ChipAddr-W5300_BANK_ADDR1)/(W5300_BANK_ADDR2-W5300_BANK_ADDR1);
     }
     sock_io_mode_p = &sock_io_moden[Chip_num];
     
@@ -1027,7 +1027,7 @@ int8_t  getsockopt(uint32_t ChipAddr, uint8_t sn, sockopt_type sotype, void* arg
     }
     else
     {
-        Chip_num = (ChipAddr-0x60000000)/0x4000000;
+        Chip_num = (ChipAddr-W5300_BANK_ADDR1)/(W5300_BANK_ADDR2-W5300_BANK_ADDR1);
     }
     sock_remained_size_p = &sock_remained_sizen[Chip_num][sn];
     sock_pack_info_p = &sock_pack_infon[Chip_num][sn];

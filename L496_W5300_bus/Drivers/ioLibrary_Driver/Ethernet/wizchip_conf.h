@@ -66,10 +66,10 @@ extern "C" {
  *       ex> <code> #define \_WIZCHIP_      W5500 </code>
  */
 #define _USE_W5300_OPTIMIZE				1
-#define W5300_BANK_ADDR1                 ((uint32_t)0x60000000)//((uint32_t)0x64000000)
-#define W5300_BANK_ADDR2                 ((uint32_t)0x64000000)//((uint32_t)0x60000000)//((uint32_t)0x64000000)
-#define W5300_BANK_ADDR3                 ((uint32_t)0x68000000)//((uint32_t)0x60000000)//((uint32_t)0x64000000)
-#define W5300_BANK_ADDR4                 ((uint32_t)0x6C000000)//((uint32_t)0x60000000)//((uint32_t)0x64000000)
+#define W5300_BANK_ADDR1                 ((uint32_t)0x60000000)
+#define W5300_BANK_ADDR2                 ((uint32_t)0x64000000)
+#define W5300_BANK_ADDR3                 ((uint32_t)0x68000000)
+#define W5300_BANK_ADDR4                 ((uint32_t)0x6C000000)
 #define _W5300_DATA(a,p)                  *(__IO uint16_t *)(a + (p<<1))//(*(volatile unsigned short*) (W5300_BANK_ADDR + (p<<1)))
 
 #define W5100						5100
