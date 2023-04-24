@@ -70,17 +70,17 @@ uint8_t ethBuf[4][ETH_MAX_BUF_SIZE];
 
 wiz_NetInfo gWIZNETINFO1 = {
 		.mac = {0x00, 0x08, 0xdc, 0, 0, 1},
-		.ip = {192, 168, 0, 111},
+		.ip = {192, 168, 15, 111},
 		.sn = {255, 255, 255, 0},
-		.gw = {192, 168, 0, 1},
+		.gw = {192, 168, 15, 1},
 		.dns = {0, 0, 0, 0},
 		.dhcp = NETINFO_STATIC
 };
 wiz_NetInfo gWIZNETINFO2 = {
 		.mac = {0x00, 0x08, 0xdc, 0, 0, 2},
-		.ip = {192, 168, 0, 112},
+		.ip = {192, 168, 15, 112},
 		.sn = {255, 255, 255, 0},
-		.gw = {192, 168, 0, 1},
+		.gw = {192, 168, 15, 1},
 		.dns = {0, 0, 0, 0},
 		.dhcp = NETINFO_STATIC
 };
@@ -154,12 +154,14 @@ void W5300CsDisable(void)
 }
 void print_network_information(void)
 {
+#if CHIP1
     wizchip_getnetinfo(W5300_BANK_ADDR1, &gWIZNETINFO1);
     printf("Mac address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",gWIZNETINFO1.mac[0],gWIZNETINFO1.mac[1],gWIZNETINFO1.mac[2],gWIZNETINFO1.mac[3],gWIZNETINFO1.mac[4],gWIZNETINFO1.mac[5]);
     printf("IP address : %d.%d.%d.%d\n\r",gWIZNETINFO1.ip[0],gWIZNETINFO1.ip[1],gWIZNETINFO1.ip[2],gWIZNETINFO1.ip[3]);
     printf("SM Mask    : %d.%d.%d.%d\n\r",gWIZNETINFO1.sn[0],gWIZNETINFO1.sn[1],gWIZNETINFO1.sn[2],gWIZNETINFO1.sn[3]);
     printf("Gate way   : %d.%d.%d.%d\n\r",gWIZNETINFO1.gw[0],gWIZNETINFO1.gw[1],gWIZNETINFO1.gw[2],gWIZNETINFO1.gw[3]);
     printf("DNS Server : %d.%d.%d.%d\n\r",gWIZNETINFO1.dns[0],gWIZNETINFO1.dns[1],gWIZNETINFO1.dns[2],gWIZNETINFO1.dns[3]);
+#endif
     wizchip_getnetinfo(W5300_BANK_ADDR3, &gWIZNETINFO2);
 	printf("Mac address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",gWIZNETINFO2.mac[0],gWIZNETINFO2.mac[1],gWIZNETINFO2.mac[2],gWIZNETINFO2.mac[3],gWIZNETINFO2.mac[4],gWIZNETINFO2.mac[5]);
 	printf("IP address : %d.%d.%d.%d\n\r",gWIZNETINFO2.ip[0],gWIZNETINFO2.ip[1],gWIZNETINFO2.ip[2],gWIZNETINFO2.ip[3]);
@@ -176,24 +178,30 @@ void _InitW5300(void)
 	//reg_wizchip_bus_cbfunc(W5300_read, W5300_write);
 	//reg_wizchip_cs_cbfunc(W5300CsEnable, W5300CsDisable);
 	//setMR(W5300_BANK_ADDR1,0xB800);
+#if CHIP1
 	printf("getMR(0x%x) = %04X\r\n",W5300_BANK_ADDR1,  getMR(W5300_BANK_ADDR1));
 	HAL_Delay(100);
+#endif
 	printf("getMR(0x%x) = %04X\r\n",W5300_BANK_ADDR3,  getMR(W5300_BANK_ADDR3));
 	HAL_Delay(100);
 
+#if CHIP1
 	if (ctlwizchip(W5300_BANK_ADDR1, CW_INIT_WIZCHIP, (void*)wiznet_memsize) == -1)
 	{
 		printf("W5300 memory initialization failed\r\n");
 	}
 	HAL_Delay(100);
+#endif
 	if (ctlwizchip(W5300_BANK_ADDR3, CW_INIT_WIZCHIP, (void*)wiznet_memsize) == -1)
 	{
 		printf("W5300 memory initialization failed\r\n");
 	}
 	HAL_Delay(100);
 
+#if CHIP1
 	ctlnetwork(W5300_BANK_ADDR1, CN_SET_NETINFO, (void *)&gWIZNETINFO1);
 	HAL_Delay(100);
+#endif
 	ctlnetwork(W5300_BANK_ADDR3, CN_SET_NETINFO, (void *)&gWIZNETINFO2);
 	HAL_Delay(100);
 	print_network_information();
@@ -255,7 +263,7 @@ int main(void)
         loopback_tcps(W5300_BANK_ADDR3, 0, ethBuf[1], 3001);
   #else  
   // client
-        loopback_tcpc(W5300_BANK_ADDR1, 0, ethBuf[0], host_ip, 3030);
+        //loopback_tcpc(W5300_BANK_ADDR1, 0, ethBuf[0], host_ip, 3030);
         loopback_tcpc(W5300_BANK_ADDR3, 0, ethBuf[1], host_ip, 3030);
   #endif
   #else
@@ -376,7 +384,7 @@ static void MX_FMC_Init(void)
   hsram1.Init.NSBank = FMC_NORSRAM_BANK1;
   hsram1.Init.DataAddressMux = FMC_DATA_ADDRESS_MUX_DISABLE;
   hsram1.Init.MemoryType = FMC_MEMORY_TYPE_SRAM;
-  hsram1.Init.MemoryDataWidth = FMC_NORSRAM_MEM_BUS_WIDTH_16;
+  hsram1.Init.MemoryDataWidth = FMC_NORSRAM_MEM_BUS_WIDTH_8;
   hsram1.Init.BurstAccessMode = FMC_BURST_ACCESS_MODE_DISABLE;
   hsram1.Init.WaitSignalPolarity = FMC_WAIT_SIGNAL_POLARITY_LOW;
   hsram1.Init.WaitSignalActive = FMC_WAIT_TIMING_BEFORE_WS;
@@ -411,7 +419,7 @@ static void MX_FMC_Init(void)
   hsram2.Init.NSBank = FMC_NORSRAM_BANK3;
   hsram2.Init.DataAddressMux = FMC_DATA_ADDRESS_MUX_DISABLE;
   hsram2.Init.MemoryType = FMC_MEMORY_TYPE_SRAM;
-  hsram2.Init.MemoryDataWidth = FMC_NORSRAM_MEM_BUS_WIDTH_16;
+  hsram2.Init.MemoryDataWidth = FMC_NORSRAM_MEM_BUS_WIDTH_8;
   hsram2.Init.BurstAccessMode = FMC_BURST_ACCESS_MODE_DISABLE;
   hsram2.Init.WaitSignalPolarity = FMC_WAIT_SIGNAL_POLARITY_LOW;
   hsram2.Init.WaitSignalActive = FMC_WAIT_TIMING_BEFORE_WS;
@@ -451,6 +459,8 @@ static void MX_FMC_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
+/* USER CODE BEGIN MX_GPIO_Init_1 */
+/* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -489,6 +499,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+/* USER CODE BEGIN MX_GPIO_Init_2 */
+/* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */

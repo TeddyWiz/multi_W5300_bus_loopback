@@ -49,7 +49,7 @@
    extern uint8_t sock_remained_byten[4][_WIZCHIP_SOCK_NUM_];
    extern uint8_t sock_pack_infon[4][_WIZCHIP_SOCK_NUM_];
 
-
+#define DATABIT8 1
 /***********************
  * Basic I/O  Function *
  ***********************/
@@ -57,7 +57,17 @@
 void     WIZCHIP_WRITE(uint32_t ChipAddr, uint32_t AddrSel, uint16_t wb )
 {
 #if _USE_W5300_OPTIMIZE
+#if DATABIT8
+	// 8bit
+	// *(__IO uint16_t *)(a + (p<<1))
+	*(__IO uint8_t *)(ChipAddr + (AddrSel)) = (uint8_t)((wb>>8)&0x00ff);
+	*(__IO uint8_t *)(ChipAddr + ((AddrSel+1))) = (uint8_t)(wb&0x00ff);
+	printf("W0x%04x 0x%04x : 0x%02x %02x\r\n",AddrSel, wb, *(__IO uint8_t *)(ChipAddr + (AddrSel)), *(__IO uint8_t *)(ChipAddr + ((AddrSel+1))));
+#else
+	// 16bit
 	_W5300_DATA(ChipAddr, AddrSel) = wb;
+	// *(__IO uint16_t *)(a + (p<<1))
+#endif
 #else
 	WIZCHIP_CRITICAL_ENTER();
     WIZCHIP.CS._select();
@@ -96,7 +106,14 @@ uint16_t WIZCHIP_READ(uint32_t ChipAddr, uint32_t AddrSel)
 {
    uint16_t ret;
 #if _USE_W5300_OPTIMIZE
+#if DATABIT8
+   // 8bit
+   	// *(__IO uint16_t *)(a + (p<<1))
+   	ret = (uint16_t)((*(__IO uint8_t *)(ChipAddr + (AddrSel))<<8) | (*(__IO uint8_t *)(ChipAddr + ((AddrSel+1)))&0x00ff));
+   	printf("R0x%04x 0x%04x : 0x%02x %02x\r\n", AddrSel, ret, *(__IO uint8_t *)(ChipAddr + (AddrSel)), *(__IO uint8_t *)(ChipAddr + ((AddrSel+1))));
+#else
    ret = _W5300_DATA(ChipAddr, AddrSel);
+#endif
 #else
    WIZCHIP_CRITICAL_ENTER();
    WIZCHIP.CS._select();
